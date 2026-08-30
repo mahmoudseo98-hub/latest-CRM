@@ -1,0 +1,135 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>SEO For All OS — Fingerprint Devices Hub</title>
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; font-src 'self' data:; connect-src 'self'">
+<link rel="stylesheet" href="vendor/fonts.css">
+<link rel="stylesheet" href="launcher.css">
+<link rel="stylesheet" href="devices.css">
+<script src="web-api.js"></script>
+<script src="theme-switcher.js"></script>
+</head>
+<body>
+<div class="grain"></div>
+<header class="top">
+  <div class="brand">
+    <div class="mark"><i></i><i></i><i></i></div>
+    <div>
+      <div class="brand-name">FINGERPRINT <b>DEVICES</b></div>
+      <div class="brand-sub">Universal connectors · live punch stream · name enrollment</div>
+    </div>
+  </div>
+  <div class="top-right">
+    <span class="chip chip-teal" id="streamState">STOPPED</span>
+    <button class="ghost theme-toggle" data-theme-toggle title="Toggle dark mode">🌙</button>
+    <button class="ghost" id="btnBack">← BACK TO LAUNCHER</button>
+  </div>
+</header>
+
+<main class="shell dshell">
+  <section class="hero">
+    <div class="hero-copy">
+      <div class="eyebrow">HARDWARE LAYER // UNIVERSAL</div>
+      <h1>Connect any time clock, register people by name.</h1>
+      <p>Follow the step-by-step guide on the right to connect a supported fingerprint reader, then scan. The first time someone scans, type their name once — every later punch shows the name automatically.</p>
+    </div>
+    <div class="hero-readouts">
+      <div class="ro"><span>DEVICES</span><b id="dCount">0</b></div>
+      <div class="ro"><span>RUNNING</span><b id="dRunning">0</b></div>
+      <div class="ro"><span>PEOPLE</span><b id="dPeople">0</b></div>
+      <div class="ro"><span>LAST EVENT</span><b id="dLast" style="font-size:11px">—</b></div>
+    </div>
+  </section>
+
+  <div class="dgrid">
+    <section class="dcol">
+      <div class="dhead"><h2>Configured devices</h2><div class="dhead-actions">
+        <button class="ghost" id="btnScan">SCAN SERVER LAN :4370</button>
+        <button class="ghost" id="btnImport">IMPORT FILE…</button>
+        <button class="ghost" id="btnSimulate">SIMULATE PUNCH</button>
+      </div></div>
+      <div id="deviceList" class="devlist"><div class="empty">No devices configured yet. Use the wizard on the right →</div></div>
+      <div id="scanResults" class="scan-results"></div>
+
+      <div class="dhead" style="margin-top:18px"><h2>Registered people</h2>
+        <button class="ghost" id="btnNewPerson">＋ REGISTER A PERSON</button>
+      </div>
+      <div id="enrollCard" class="enroll" style="display:none">
+        <div class="enroll-head"><b id="enrollTitle">Register a person</b><span id="enrollHint"></span></div>
+        <form id="enrollForm" autocomplete="off">
+          <div class="enroll-grid">
+            <div class="field"><label>Fingerprint / badge ID</label><input id="eId" placeholder="e.g. 1001" inputmode="numeric" required></div>
+            <div class="field"><label>Full name *</label><input id="eName" placeholder="e.g. Ahmed Hassan" required></div>
+            <div class="field"><label>Department (optional)</label><input id="eDept" placeholder="e.g. Sales" list="deptList"></div>
+          </div>
+          <div class="wiz-actions">
+            <button type="button" class="ghost" id="btnEnrollCancel">CANCEL</button>
+            <button type="submit" class="open">SAVE PERSON</button>
+          </div>
+        </form>
+      </div>
+      <datalist id="deptList"></datalist>
+      <div id="peopleList" class="devlist"><div class="empty">No one registered yet. Scan a fingerprint or press "Register a person".</div></div>
+
+      <div class="dhead" style="margin-top:18px"><h2>Live punch stream</h2></div>
+      <div id="punchStream" class="stream"><div class="empty">Punches appear here in real time.</div></div>
+    </section>
+
+    <section class="dcol">
+      <div class="dhead"><h2>① Add device</h2></div>
+      <form id="addForm" class="wizard" autocomplete="off">
+        <div class="field"><label>Name</label><input id="fName" placeholder="Lobby terminal" required></div>
+        <div class="field"><label>Connection type</label>
+          <select id="fType">
+            <option value="http-push">HTTP push receiver (ADMS / iClock / clones)</option>
+            <option value="zk-tcp">ZK TCP pull (ZKTeco-class, port 4370)</option>
+            <option value="keyboard-wedge">USB keyboard-wedge reader (any brand)</option>
+            <option value="simulator">Simulator (no hardware)</option>
+          </select>
+        </div>
+        <div class="field" id="rowHost" style="display:none"><label>Host / IP</label><input id="fHost" placeholder="192.168.1.50"></div>
+        <div class="field" id="rowPort" style="display:none"><label>Port</label><input id="fPort" value="4370" inputmode="numeric"></div>
+        <div class="field" id="rowPass" style="display:none"><label>Device password (0 = none)</label><input id="fPass" value="0" inputmode="numeric"></div>
+        <div class="field" id="rowPoll" style="display:none"><label>Poll interval (seconds)</label><input id="fPoll" value="15" inputmode="numeric"></div>
+        <div class="field" id="rowToken" style="display:none"><label>Shared token (optional)</label><input id="fToken" placeholder="leave empty = open"></div>
+        <div class="field" id="rowSim" style="display:none"><label>Simulator mode</label><select id="fSimMode"><option value="auto">Auto punches every 8s</option><option value="manual">Manual only</option></select></div>
+        <div class="hint" id="fHint">After adding the device, copy its HTTPS endpoint from the configured-device card.</div>
+        <div class="wiz-actions">
+          <button type="button" class="ghost" id="btnTestWiz">TEST CONNECTION</button>
+          <button type="submit" class="open">ADD DEVICE</button>
+        </div>
+        <div id="wizMsg" class="wiz-msg"></div>
+      </form>
+
+      <div class="dhead" style="margin-top:18px"><h2>② Step-by-step setup</h2></div>
+      <div class="guide" id="setupGuide">
+        <ol id="guideSteps" class="steps"></ol>
+      </div>
+
+      <div class="dhead" style="margin-top:18px"><h2>③ Enroll names</h2></div>
+      <div class="guide">
+        <ol class="steps">
+          <li>After the device is running, scan a fingerprint on the reader.</li>
+          <li>The punch appears in the Live stream. If the ID is unknown, a <b>register card</b> opens automatically with the ID filled in.</li>
+          <li>Type the person's <b>full name</b> (and optional department), press <b>SAVE PERSON</b>.</li>
+          <li>That's it — every future scan of that finger shows the name, and they're added to the roster.</li>
+        </ol>
+      </div>
+
+      <div class="dhead" style="margin-top:18px"><h2>Connection types</h2></div>
+      <div class="matrix">
+        <div><b>HTTP push</b><span>Set the device to post punches to this PC. Best for ZKTeco ADMS/iClock &amp; clones. Real-time.</span></div>
+        <div><b>ZK TCP</b><span>Direct pull over LAN on port 4370 using the documented ZK protocol. Polls every N seconds.</span></div>
+        <div><b>Keyboard wedge</b><span>Readers that type the ID like a keyboard. Plug in, arm, done. Real-time.</span></div>
+        <div><b>File import</b><span>Any device: export to USB, import here. Column mapping auto-detected, profiles saved.</span></div>
+        <div><b>Simulator</b><span>Scripted punches for testing flows, reports and the 3D office without hardware.</span></div>
+      </div>
+    </section>
+  </div>
+</main>
+
+<script src="devices.js"></script>
+</body>
+</html>

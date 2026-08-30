@@ -1,0 +1,167 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>SEO For All OS — Setup & Configuration</title>
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; font-src 'self' data:; connect-src 'self'">
+<link rel="stylesheet" href="vendor/fonts.css">
+<link rel="stylesheet" href="launcher.css">
+<link rel="stylesheet" href="setup.css">
+<script src="web-api.js"></script>
+<script src="theme-switcher.js"></script>
+</head>
+<body>
+<div class="grain"></div>
+<header class="top">
+  <div class="brand">
+    <div class="mark"><i></i><i></i><i></i></div>
+    <div>
+      <div class="brand-name" id="hdrTitle">SYSTEM <b>SETUP</b></div>
+      <div class="brand-sub" id="hdrSub">Configure everything before you start</div>
+    </div>
+  </div>
+  <div class="top-right">
+    <span class="chip chip-amber" id="modeChip">FIRST RUN</span>
+    <button class="ghost theme-toggle" data-theme-toggle title="Toggle dark mode">🌙</button>
+    <button class="ghost" id="btnBack" style="display:none">← LAUNCHER</button>
+  </div>
+</header>
+
+<main class="shell sshell">
+  <div class="steps" id="steps"></div>
+
+  <section class="spane active" id="step-0">
+    <div class="eyebrow">STEP 1 / 7 · IDENTITY</div>
+    <h1>Your company</h1>
+    <p class="spane-sub">This name, logo and location are used across the OS, exports and device hub.</p>
+    <div class="form-grid">
+      <div class="field span2"><label>Company name</label><input id="fCompanyName" placeholder="e.g. SEO For All" required></div>
+      <div class="field span2"><label>Tagline</label><input id="fTagline" placeholder="Company Intelligence OS"></div>
+      <div class="field"><label>Country</label><input id="fCountry" placeholder="Egypt"></div>
+      <div class="field"><label>Timezone</label><select id="fTimezone">
+        <option value="Africa/Cairo">Africa/Cairo (UTC+2)</option>
+        <option value="Africa/Casablanca">Africa/Casablanca</option>
+        <option value="Africa/Johannesburg">Africa/Johannesburg</option>
+        <option value="Asia/Riyadh">Asia/Riyadh</option>
+        <option value="Asia/Dubai">Asia/Dubai</option>
+        <option value="Europe/London">Europe/London</option>
+        <option value="America/New_York">America/New_York</option>
+      </select></div>
+      <div class="field"><label>Currency</label><select id="fCurrency">
+        <option>EGP</option><option>USD</option><option>EUR</option><option>SAR</option><option>AED</option><option>GBP</option>
+      </select></div>
+      <div class="field span2"><label>Company logo</label>
+        <div class="logo-row">
+          <div class="logo-preview" id="logoPreview"><span>NO LOGO</span></div>
+          <div class="logo-actions">
+            <button type="button" class="ghost" id="btnLogo">CHOOSE IMAGE…</button>
+            <button type="button" class="ghost" id="btnLogoClear">REMOVE</button>
+            <small>PNG / JPG / SVG — shown in the launcher and app sidebar</small>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="spane-nav"><button class="ghost" id="s0Back" style="visibility:hidden">BACK</button><button class="open" id="s0Next">NEXT <i>→</i></button></div>
+  </section>
+
+  <section class="spane" id="step-1">
+    <div class="eyebrow">STEP 2 / 7 · REGISTRATION</div>
+    <h1>Who is registering this system?</h1>
+    <p class="spane-sub">This becomes the primary account. The role decides which controls are unlocked (Owner/CEO can do everything).</p>
+    <div class="radio-grid" id="roleRadios">
+      <label><input type="radio" name="regRole" value="ceo" checked><span><b>Owner / CEO</b><small>Full access · manage roles &amp; settings</small></span></label>
+      <label><input type="radio" name="regRole" value="director"><span><b>Division Director</b><small>Assigned divisions</small></span></label>
+      <label><input type="radio" name="regRole" value="manager"><span><b>Department Manager</b><small>Own department</small></span></label>
+      <label><input type="radio" name="regRole" value="employee"><span><b>Employee</b><small>Self + shared work</small></span></label>
+    </div>
+    <div class="form-grid">
+      <div class="field"><label>Full name</label><input id="fOwnerName" placeholder="e.g. Omar Ahmed" required></div>
+      <div class="field"><label>Employee ID (device code)</label><input id="fOwnerId" placeholder="e.g. 1001" required></div>
+      <div class="field"><label>Department</label><select id="fOwnerDept"></select></div>
+    </div>
+    <div class="spane-nav"><button class="ghost" id="s1Back">BACK</button><button class="open" id="s1Next">NEXT <i>→</i></button></div>
+  </section>
+
+  <section class="spane" id="step-2">
+    <div class="eyebrow">STEP 3 / 7 · STRUCTURE</div>
+    <h1>Departments</h1>
+    <p class="spane-sub">Teams used in attendance scope, the 3D office and permissions.</p>
+    <div class="chips" id="deptChips"></div>
+    <div class="add-row"><input id="fNewDept" placeholder="New department name"><button class="ghost" id="btnAddDept">+ ADD</button></div>
+    <div class="spane-nav"><button class="ghost" id="s2Back">BACK</button><button class="open" id="s2Next">NEXT <i>→</i></button></div>
+  </section>
+
+  <section class="spane" id="step-3">
+    <div class="eyebrow">STEP 4 / 7 · PEOPLE</div>
+    <h1>Employees</h1>
+    <p class="spane-sub">The roster drives attendance, the org chart and the 3D workspace. Device ID = the code your fingerprint terminal sends.</p>
+    <div class="table-wrap">
+      <table class="emp-table">
+        <thead><tr><th>Name</th><th>Employee ID</th><th>Department</th><th>Role</th><th>Device ID</th><th></th></tr></thead>
+        <tbody id="empRows"></tbody>
+      </table>
+    </div>
+    <div class="add-row"><button class="ghost" id="btnAddEmp">+ ADD EMPLOYEE</button><button class="ghost" id="btnFillDemo">LOAD DEMO ROSTER</button><button class="ghost" id="btnClearEmp">CLEAR</button></div>
+    <div class="spane-nav"><button class="ghost" id="s3Back">BACK</button><button class="open" id="s3Next">NEXT <i>→</i></button></div>
+  </section>
+
+  <section class="spane" id="step-4">
+    <div class="eyebrow">STEP 5 / 7 · HARDWARE</div>
+    <h1>Fingerprint devices</h1>
+    <p class="spane-sub">Connect your time clocks now, or skip and use the Devices Hub later.</p>
+    <div class="form-grid">
+      <div class="field"><label>Name</label><input id="fDevName" placeholder="Lobby terminal"></div>
+      <div class="field"><label>Type</label><select id="fDevType">
+        <option value="http-push">HTTP push (ADMS / iClock / clones)</option>
+        <option value="zk-tcp">ZK TCP (ZKTeco-class, port 4370)</option>
+        <option value="keyboard-wedge">USB keyboard-wedge</option>
+        <option value="simulator">Simulator (no hardware)</option>
+      </select></div>
+      <div class="field" id="devRowHost"><label>Host / IP</label><input id="fDevHost" placeholder="192.168.1.50"></div>
+      <div class="field" id="devRowPort"><label>Port</label><input id="fDevPort" value="4370"></div>
+      <div class="field" id="devRowToken"><label>Shared token (optional)</label><input id="fDevToken"></div>
+    </div>
+    <div class="add-row"><button class="ghost" id="btnTestDev">TEST</button><button class="ghost" id="btnAddDev">+ ADD DEVICE</button></div>
+    <div class="devlist" id="setupDevList"><div class="empty">No devices added yet.</div></div>
+    <div class="spane-nav"><button class="ghost" id="s4Back">BACK</button><button class="open" id="s4Next">NEXT <i>→</i></button></div>
+  </section>
+
+  <section class="spane" id="step-5">
+    <div class="eyebrow">STEP 6 / 7 · PREFERENCES</div>
+    <h1>Working rules &amp; safety</h1>
+    <div class="form-grid">
+      <div class="field"><label>Standard work hours / day</label><input id="fWorkHours" type="number" min="1" max="12" value="8"></div>
+      <div class="field"><label>Active weekdays</label><div class="weekday-row" id="weekdayChips"></div></div>
+      <div class="field span2"><label>Auto-backup every save</label>
+        <label class="switch"><input id="fAutoBackup" type="checkbox"><i></i></label>
+        <small>Browser deployments download backup JSON files through the browser.</small>
+      </div>
+      <div class="field span2" id="rowBackupPath"><label>Backup destination label</label><div class="add-row"><input id="fBackupPath" placeholder="Browser downloads folder"><button class="ghost" id="btnPickBackup">SELECT…</button></div></div>
+      <div class="field"><label>Work reminders</label><label class="switch"><input id="fReminders" type="checkbox" checked><i></i></label></div>
+      <div class="field"><label>Brain-break scheduler enabled</label><label class="switch"><input id="fFun" type="checkbox" checked><i></i></label></div>
+      <div class="field span2"><label>Keep demo records (requests / projects / deductions)</label><label class="switch"><input id="fKeepDemo" type="checkbox" checked><i></i></label>
+        <small>Off = empty records; your company data starts clean.</small></div>
+    </div>
+    <div class="spane-nav"><button class="ghost" id="s5Back">BACK</button><button class="open" id="s5Next">NEXT <i>→</i></button></div>
+  </section>
+
+  <section class="spane" id="step-6">
+    <div class="eyebrow">STEP 7 / 7 · REVIEW</div>
+    <h1>Ready to go live</h1>
+    <div class="summary" id="summaryCards"></div>
+    <div class="spane-nav"><button class="ghost" id="s6Back">BACK</button><button class="open" id="btnFinish">FINISH &amp; LAUNCH <i>→</i></button></div>
+  </section>
+
+  <div class="wiz-msg" id="wizMsg"></div>
+
+  <div class="save-bar" id="saveBar" style="display:none">
+    <span class="sp">CHANGES ARE WRITTEN TO company/config.json — THEY GO LIVE INSTANTLY</span>
+    <button class="ghost" id="btnResetCfg">RESET TO DEMO</button>
+    <button class="open" id="btnSaveAll">SAVE ALL CHANGES</button>
+  </div>
+</main>
+
+<script src="setup.js"></script>
+</body>
+</html>

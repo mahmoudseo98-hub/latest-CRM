@@ -1,0 +1,112 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>SEO For All OS — Launcher</title>
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; font-src 'self' data:; connect-src 'self'">
+<link rel="stylesheet" href="vendor/fonts.css">
+<link rel="stylesheet" href="launcher.css">
+<script src="web-api.js"></script>
+<script src="theme-switcher.js"></script>
+</head>
+<body>
+<div class="grain"></div>
+<header class="top">
+  <div class="brand">
+    <div class="mark"><i></i><i></i><i></i></div>
+    <div>
+      <div class="brand-name" id="coNameTop">SEO FOR ALL <b>OS</b></div>
+      <div class="brand-sub" id="coTagTop">Company Intelligence · 3D Workspace · Devices</div>
+    </div>
+  </div>
+  <div class="top-right">
+    <span class="chip chip-amber" id="verChip">LOADING…</span>
+    <span class="chip chip-teal">SELF-HOSTED</span>
+    <button class="ghost theme-toggle" data-theme-toggle title="Toggle dark mode">🌙</button>
+    <button class="ghost" id="btnConfig">⚙ CONFIGURATION</button>
+  </div>
+</header>
+
+<main class="shell">
+  <section class="hero">
+    <div class="hero-copy">
+      <div class="eyebrow">CONTROL PLANE // LOCAL-FIRST</div>
+      <h1>One desk.<br>Every operation.</h1>
+      <p>Run the full company intelligence OS with its 3D office visualizer &amp; decor studio, plus supported fingerprint time clocks — from one private Node.js web deployment.</p>
+    </div>
+    <div class="hero-readouts">
+      <div class="ro"><span>STORAGE</span><b id="roStorage">—</b></div>
+      <div class="ro"><span>PROJECTS</span><b id="roProjects">—</b></div>
+      <div class="ro"><span>AUDIT ROWS</span><b id="roAudit">—</b></div>
+      <div class="ro"><span>PUNCHES</span><b id="roPunches">—</b></div>
+    </div>
+  </section>
+
+  <section class="company-strip" id="companyStrip" style="display:none">
+    <div class="co-logo" id="coLogo"><span>NO<br>LOGO</span></div>
+    <div class="co-main">
+      <div class="co-name" id="coName">—</div>
+      <div class="co-tag" id="coTag">—</div>
+    </div>
+    <div class="co-meta">
+      <div class="co-cell"><span>REGISTERED AS</span><b id="coRole">—</b></div>
+      <div class="co-cell"><span>PRIMARY ACCOUNT</span><b id="coOwner">—</b></div>
+      <div class="co-cell"><span>EMPLOYEES</span><b id="coEmps">—</b></div>
+      <div class="co-cell"><span>DEVICES</span><b id="coDevs">—</b></div>
+    </div>
+    <button class="ghost" id="btnCoConfig">EDIT ALL SETTINGS</button>
+  </section>
+  <section class="warn-strip" id="warnStrip" style="display:none">
+    <b>⚠ Setup incomplete</b>
+    <span>Configure company, identity, employees and fingerprint devices before going live.</span>
+    <button class="open" id="btnRunSetup">RUN SETUP WIZARD</button>
+  </section>
+
+  <section class="grid">
+    <article class="card app-card" id="cardSeo" tabindex="0">
+      <div class="card-top">
+        <span class="tag">CORE APP</span>
+        <span class="tag tag-amber">v10</span>
+      </div>
+      <h2>Company Intelligence OS</h2>
+      <p>Overview, organization, attendance &amp; payroll events, projects, tasks, requests, discussions, performance, Executive AI, project tools, reports, 3D office visualizer, settings and role-based permissions.</p>
+      <div class="chips">
+        <span>RBAC</span><span>14 MODULES</span><span>REPORTS → CSV</span><span>LOCAL BACKUP</span>
+      </div>
+      <button class="open" data-page="seo-for-all/index.html">OPEN <i>↗</i></button>
+      <div class="keyhint">shortcut <kbd>1</kbd></div>
+    </article>
+
+    <article class="card app-card" id="cardDevices" tabindex="0">
+      <div class="card-top">
+        <span class="tag">HARDWARE</span>
+        <span class="tag tag-teal" id="devCount">0 DEVICES</span>
+      </div>
+      <h2>Fingerprint Devices Hub</h2>
+      <p>Connect any attendance terminal: HTTP push, ZK TCP (port 4370), USB keyboard-wedge readers, file import, or the built-in simulator. Live punch stream with full audit.</p>
+      <div class="chips">
+        <span>HTTP PUSH</span><span>ZK TCP</span><span>USB WEDGE</span><span>SIMULATOR</span>
+      </div>
+      <button class="open open-teal" data-page="devices.html">OPEN <i>↗</i></button>
+      <div class="keyhint">shortcut <kbd>2</kbd></div>
+    </article>
+  </section>
+
+  <section class="strip">
+    <div class="strip-item"><span class="dot dot-ok" id="dotStatus"></span><b id="stripStatus">Shell ready</b><small id="stripDetail">initializing…</small></div>
+    <div class="strip-item"><span>DATA FOLDER</span><b id="dataFolder">—</b></div>
+    <button class="ghost" id="btnDataFolder">DOWNLOAD SERVER BACKUP</button>
+    <button class="ghost" id="btnAudit">AUDIT LOG</button>
+    <button class="ghost" id="btnDocs">USER GUIDE</button>
+  </section>
+</main>
+
+<footer>
+  <span>SEO FOR ALL OS v<span id="footVer">—</span> · <span id="footElectron">NODE.JS</span> · <span id="footChrome">WEB</span></span>
+  <span>SERVER-MANAGED PRIVATE DATA</span>
+</footer>
+
+<script src="launcher.js"></script>
+</body>
+</html>
