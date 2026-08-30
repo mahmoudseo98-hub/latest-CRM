@@ -1,0 +1,19 @@
+{
+  "name": "seo-for-all-os-nodejs",
+  "version": "1.0.0",
+  "description": "Web deployment of SEO For All OS with the original Company Intelligence OS, 3D workspace, configuration center, and fingerprint device hub.",
+  "private": true,
+  "main": "server.js",
+  "type": "commonjs",
+  "scripts": {
+    "start": "node server.js",
+    "dev": "node --watch server.js",
+    "test": "node --test tests/*.test.js",
+    "test:e2e": "node tests/e2e-smoke.js",
+    "check": "node --check server.js && node --check src/app.js && node --check src/device-manager.js && node --check public/web-api.js && node --check public/devices.js && node --check public/setup.js && node --check public/launcher.js"
+  },
+  "engines": {
+    "node": "24.x"
+  },
+  "license": "MIT"
+}
