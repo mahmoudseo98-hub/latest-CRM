@@ -27,6 +27,7 @@
     { t: 'pendant', name: 'Pendant Light', icon: '💡', w: 0.5, d: 0.5 },
   ];
   const BRAND_SWATCHES = ['#5a67f2', '#C7503F', '#0EA5E9', '#14B8A6', '#E59A22', '#8A5CF5', '#2A2828', '#FFFFFF'];
+  const FLOOR_SWATCHES = ['#FFFFFF', '#F1F5F9', '#E8DCC4', '#D8DEE9', '#C9C2B4', '#8B8B8B', '#2A2828', '#101828'];
   const TEMPLATES = {
     executive: {
       name: 'Executive',
@@ -74,6 +75,10 @@
   let officeEdits = {};     // { <template>: { removed:[id], moved:{id:{x,z,ry}}, wsMoved:{id:{x,z,ry}} } }
   let officeFresh = false;  // true right after the app rebuilds the office (ids must be reassigned)
   let syncPending = false;
+  let rooms = [];            // extra rooms the CEO has added: { id, name, x, z, ry, w, d, color }
+  let roomsGroup = null;
+  let floorColor = '#ffffff'; // the main office floor is white by default and stays editable
+  let applyingFloorColor = false;
 
   function esc(s) { return String(s == null ? '' : s).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c])); }
   function mat(color, rough, metal) { return new THREE.MeshStandardMaterial({ color, roughness: rough == null ? 0.7 : rough, metalness: metal == null ? 0 : metal }); }
@@ -183,11 +188,155 @@
     return g;
   }
 
+  /* ---------- extra rooms ---------- */
+  function roundRectPath(ctx, x, y, w, h, r) {
+    ctx.beginPath();
+    ctx.moveTo(x + r, y);
+    ctx.arcTo(x + w, y, x + w, y + h, r);
+    ctx.arcTo(x + w, y + h, x, y + h, r);
+    ctx.arcTo(x, y + h, x, y, r);
+    ctx.arcTo(x, y, x + w, y, r);
+    ctx.closePath();
+  }
+  function makeLabelSprite(text) {
+    const canvas = document.createElement('canvas');
+    const ctx = canvas.getContext('2d');
+    const fontSize = 44;
+    ctx.font = 'bold ' + fontSize + 'px system-ui, -apple-system, Segoe UI, sans-serif';
+    const padX = 26, padY = 14;
+    const textW = Math.max(20, ctx.measureText(text).width);
+    canvas.width = Math.ceil(textW + padX * 2);
+    canvas.height = fontSize + padY * 2;
+    ctx.font = 'bold ' + fontSize + 'px system-ui, -apple-system, Segoe UI, sans-serif';
+    roundRectPath(ctx, 0, 0, canvas.width, canvas.height, 16);
+    ctx.fillStyle = 'rgba(16,20,34,0.86)';
+    ctx.fill();
+    ctx.fillStyle = '#ffffff';
+    ctx.textBaseline = 'middle';
+    ctx.fillText(text, padX, canvas.height / 2 + 2);
+    const tex = new THREE.CanvasTexture(canvas);
+    tex.needsUpdate = true;
+    const spriteMat = new THREE.SpriteMaterial({ map: tex, depthTest: false, depthWrite: false, transparent: true });
+    const sprite = new THREE.Sprite(spriteMat);
+    const scale = 0.0065;
+    sprite.scale.set(canvas.width * scale, canvas.height * scale, 1);
+    sprite.renderOrder = 999;
+    return sprite;
+  }
+  function roomBounds() { return { hw: core.ROOM_W * 2, hd: core.ROOM_D * 2 }; }
+  function clampRoomPos(x, z) { const b = roomBounds(); return { x: Math.max(-b.hw, Math.min(b.hw, x)), z: Math.max(-b.hd, Math.min(b.hd, z)) }; }
+  function buildRoom(room) {
+    const g = new THREE.Group();
+    const floorGeo = new THREE.PlaneGeometry(room.w, room.d);
+    const floorMesh = new THREE.Mesh(floorGeo, mat(room.color || '#ffffff', 0.75, 0));
+    floorMesh.rotation.x = -Math.PI / 2;
+    floorMesh.position.y = 0.012;
+    floorMesh.receiveShadow = true;
+    g.add(floorMesh);
+    const wallH = 1.6;
+    const wallMatRoom = new THREE.MeshStandardMaterial({ color: 0xc9d3e6, transparent: true, opacity: 0.4, roughness: 0.3, metalness: 0, side: THREE.DoubleSide, depthWrite: false });
+    const mkWall = (w, d, x, z) => { const wm = new THREE.Mesh(new THREE.BoxGeometry(w, wallH, d), wallMatRoom); wm.position.set(x, wallH / 2 + 0.012, z); wm.castShadow = false; g.add(wm); };
+    mkWall(room.w, 0.08, 0, -room.d / 2);
+    mkWall(room.w, 0.08, 0, room.d / 2);
+    mkWall(0.08, room.d, -room.w / 2, 0);
+    mkWall(0.08, room.d, room.w / 2, 0);
+    const label = makeLabelSprite(room.name || 'Room');
+    label.position.set(0, wallH + 0.45, 0);
+    g.add(label);
+    g.userData.isRoom = true;
+    return g;
+  }
+  function rebuildRooms() {
+    if (!roomsGroup) { roomsGroup = new THREE.Group(); core.scene.add(roomsGroup); }
+    while (roomsGroup.children.length) {
+      const c = roomsGroup.children[0];
+      roomsGroup.remove(c);
+      c.traverse((o) => { if (o.geometry) o.geometry.dispose(); if (o.material && o.material.map) o.material.map.dispose(); });
+    }
+    rooms.forEach((r) => {
+      const mesh = buildRoom(r);
+      mesh.position.set(r.x, 0, r.z);
+      mesh.rotation.y = r.ry || 0;
+      mesh.userData.decorId = r.id;
+      roomsGroup.add(mesh);
+    });
+    updateCost();
+    renderRooms();
+  }
+  function addRoom(spec) {
+    const id = nextRoomId();
+    const w = Math.max(2, Math.min(20, spec.w || 6));
+    const d = Math.max(2, Math.min(20, spec.d || 5));
+    const x = core.ROOM_W / 2 + 1.0 + w / 2;
+    const z = -core.ROOM_D / 2 + d / 2 + rooms.length * (d + 1.2);
+    const room = { id, name: spec.name || ('Room ' + (rooms.length + 1)), x, z, ry: 0, w, d, color: spec.color || '#ffffff' };
+    rooms.push(room);
+    const mesh = buildRoom(room);
+    mesh.position.set(room.x, 0, room.z);
+    mesh.userData.decorId = id;
+    roomsGroup.add(mesh);
+    updateCost(); renderRooms(); scheduleSave();
+    select(id);
+    if (typeof showToast === 'function') showToast('Added room "' + room.name + '" — drag it into place');
+    return room;
+  }
+  function removeRoom(id) {
+    rooms = rooms.filter((r) => r.id !== id);
+    const mesh = meshById(id);
+    if (mesh) roomsGroup.remove(mesh);
+    if (selectedId === id) { selectedId = null; updateActionBar(); }
+    updateCost(); renderRooms(); scheduleSave();
+  }
+  function renderRooms() {
+    if (!panel) return;
+    const wrap = panel.querySelector('.decor-room-list');
+    if (!wrap) return;
+    if (!rooms.length) { wrap.innerHTML = '<div class="decor-placed-empty">No extra rooms yet — name one above and click Add room.</div>'; return; }
+    wrap.innerHTML = rooms.map((r) =>
+      '<div class="decor-placed ' + (r.id === selectedId ? 'sel' : '') + '" data-id="' + r.id + '" title="drag to move · R rotate · ✕ removes">' +
+      '<span class="dp-name">' + esc(r.name) + '</span>' +
+      '<button class="dp-del" data-id="' + r.id + '" title="remove room">✕</button></div>').join('');
+    wrap.querySelectorAll('.dp-del').forEach((b) => b.addEventListener('click', (e) => { e.stopPropagation(); removeRoom(b.dataset.id); }));
+    wrap.querySelectorAll('.decor-placed').forEach((row) => row.addEventListener('click', () => select(row.dataset.id)));
+  }
+
+  /* ---------- floor color ---------- */
+  function hookFloorMat() {
+    const fm = core.floorMat;
+    if (!fm || fm.__decorHooked) return;
+    fm.__decorHooked = true;
+    const origSetHex = fm.color.setHex.bind(fm.color);
+    fm.color.setHex = function (hex) {
+      const r = origSetHex(hex);
+      if (floorColor && !applyingFloorColor) {
+        applyingFloorColor = true;
+        fm.color.set(floorColor);
+        applyingFloorColor = false;
+      }
+      return r;
+    };
+  }
+  function setFloorColor(hex) {
+    if (!/^#[0-9a-fA-F]{6}$/.test(hex)) return;
+    floorColor = hex;
+    applyingFloorColor = true;
+    if (core.floorMat) core.floorMat.color.set(hex);
+    applyingFloorColor = false;
+    if (panel) {
+      const inp = panel.querySelector('#decorFloorHex');
+      if (inp) inp.value = hex;
+      panel.querySelectorAll('.decor-floor-swatch').forEach((s) => s.classList.toggle('active', s.dataset.c.toLowerCase() === hex.toLowerCase()));
+    }
+    scheduleSave();
+  }
+
   /* ---------- persistence ---------- */
   function save() {
     const data = {
       items: items.map((it) => ({ t: it.t, x: it.x, z: it.z, ry: it.ry })),
+      rooms: rooms.map((r) => ({ name: r.name, x: r.x, z: r.z, ry: r.ry, w: r.w, d: r.d, color: r.color })),
       brand: brandColor, theme: core.ws3dState.theme,
+      floorColor: floorColor,
       officeEdits: officeEdits,
     };
     try { localStorage.setItem(LS_KEY, JSON.stringify(data)); } catch (_) {}
@@ -202,14 +351,17 @@
     if (!data) return;
     if (data.theme && core.DECOR_THEMES[data.theme]) { core.ws3dState.theme = data.theme; core.ws3dApplyDecor(); }
     if (data.brand) setBrand(data.brand, true);
+    setFloorColor(/^#[0-9a-fA-F]{6}$/.test(data.floorColor || '') ? data.floorColor : floorColor);
     if (data.officeEdits) officeEdits = data.officeEdits;
     (data.items || []).forEach((it) => { if (CATALOG.some((c) => c.t === it.t)) items.push({ t: it.t, x: it.x, z: it.z, ry: it.ry || 0, id: nextId() }); });
+    (data.rooms || []).forEach((r) => { rooms.push({ id: nextRoomId(), name: r.name || 'Room', x: r.x || 0, z: r.z || 0, ry: r.ry || 0, w: r.w || 6, d: r.d || 5, color: /^#[0-9a-fA-F]{6}$/.test(r.color || '') ? r.color : '#ffffff' }); });
   }
 
   /* ---------- scene management ---------- */
   let group = null;
   let idCounter = 1;
   function nextId() { return 'd' + (idCounter++); }
+  function nextRoomId() { return 'r' + (idCounter++); }
   function bounds() { return { hw: core.ROOM_W / 2 - 0.7, hd: core.ROOM_D / 2 - 0.7 }; }
   function clampPos(x, z) { const b = bounds(); return { x: Math.max(-b.hw, Math.min(b.hw, x)), z: Math.max(-b.hd, Math.min(b.hd, z)) }; }
 
@@ -308,18 +460,22 @@
     if (!id) return null;
     if (id.indexOf('o:deco:') === 0) return core.decoGroup.children.find((c) => c.userData.decorId === id) || null;
     if (id.indexOf('o:ws:') === 0) return workstations().find((w) => w.userData.decorId === id) || null;
+    if (/^r\d/.test(id)) return roomsGroup ? roomsGroup.children.find((m) => m.userData.decorId === id) : null;
     return group ? group.children.find((m) => m.userData.decorId === id) : null;
   }
-  function itemById(id) { return items.find((i) => i.id === id); }
+  function itemById(id) {
+    if (id && /^r\d/.test(id)) return rooms.find((r) => r.id === id);
+    return items.find((i) => i.id === id);
+  }
   function allSelectable() {
-    return [].concat(group ? group.children : [], core.decoGroup ? core.decoGroup.children : [], workstations());
+    return [].concat(group ? group.children : [], roomsGroup ? roomsGroup.children : [], core.decoGroup ? core.decoGroup.children : [], workstations());
   }
 
   function updateCost() {
     if (!panel) return;
     const seats = items.filter((it) => ['chair', 'meeting', 'desk', 'standing'].includes(it.t)).length;
-    panel.querySelector('.decor-count').textContent = items.length + ' items';
-    const area = core.ROOM_W * core.ROOM_D;
+    panel.querySelector('.decor-count').textContent = items.length + ' items' + (rooms.length ? ' · ' + rooms.length + ' room' + (rooms.length === 1 ? '' : 's') : '');
+    const area = core.ROOM_W * core.ROOM_D + rooms.reduce((s, r) => s + r.w * r.d, 0);
     const capacity = Math.floor(area / 3.2);
     const staff = (window.companyData && companyData.employees ? companyData.employees.length : 0);
     const occ = staff + seats;
@@ -399,6 +555,7 @@
       renderOfficeList(); scheduleSave();
       return;
     }
+    if (/^r\d/.test(id)) { removeRoom(id); return; }
     removeItem(id);
   }
 
@@ -492,8 +649,17 @@
           if (o.isMesh) {
             if (!o.userData.origMat) o.userData.origMat = o.material;
             const hl = o.material.clone();
-            hl.emissive = new THREE.Color(0xffc94a);
-            hl.emissiveIntensity = 0.35;
+            // Only lit materials (Standard/Phong/Lambert/...) have an emissive
+            // channel; forcing it onto e.g. MeshBasicMaterial leaves the clone
+            // with no matching shader uniform and crashes the WHOLE render loop
+            // on the next frame — freezing the entire 3D scene. Tint via color
+            // instead for materials that don't support emissive.
+            if (hl.emissive) {
+              hl.emissive = new THREE.Color(0xffc94a);
+              hl.emissiveIntensity = 0.35;
+            } else if (hl.color) {
+              hl.color = new THREE.Color(0xffc94a);
+            }
             o.material = hl;
           }
         });
@@ -501,12 +667,14 @@
     });
     renderPlaced();
     renderOfficeList();
+    renderRooms();
     updateActionBar();
     const hint = panel && panel.querySelector('.decor-hint');
     if (hint) {
       if (!id) hint.textContent = 'CLICK AN ITEM ABOVE, THEN CLICK THE FLOOR';
       else if (isOfficeDesk(id)) hint.textContent = 'EMPLOYEE DESK — drag to move · R rotate';
       else if (id.indexOf('o:deco:') === 0) hint.textContent = 'EXISTING OFFICE — drag to move · R rotate · Del remove';
+      else if (/^r\d/.test(id)) hint.textContent = 'ROOM — drag to move · R rotate · Del delete';
       else hint.textContent = 'SELECTED — drag to move · R rotate · Del delete';
     }
   }
@@ -531,7 +699,7 @@
 
   function pickItem(event) {
     raycaster.setFromCamera(mouseNDC, core.camera);
-    const targets = [].concat(group ? group.children : [], core.decoGroup ? core.decoGroup.children : [], workstations());
+    const targets = [].concat(group ? group.children : [], roomsGroup ? roomsGroup.children : [], core.decoGroup ? core.decoGroup.children : [], workstations());
     if (!targets.length) return null;
     const hits = raycaster.intersectObjects(targets, true);
     for (const h of hits) {
@@ -570,7 +738,8 @@
         const mesh = meshById(dragging.id);
         if (mesh) {
           const snap = 0.25;
-          const p = clampPos(Math.round((hit.x - dragging.offX) / snap) * snap, Math.round((hit.z - dragging.offZ) / snap) * snap);
+          const clampFn = /^r\d/.test(dragging.id) ? clampRoomPos : clampPos;
+          const p = clampFn(Math.round((hit.x - dragging.offX) / snap) * snap, Math.round((hit.z - dragging.offZ) / snap) * snap);
           mesh.position.set(p.x, 0, p.z);
           const ent = officeEntry(dragging.id);
           if (ent) {
@@ -592,6 +761,8 @@
     if (armedType) {
       e.preventDefault();
       e.stopPropagation();
+      // Placing a new item: keep the orbit camera from grabbing this same click.
+      if (core.controls) core.controls.enabled = false;
       if (ghost && ghost.visible) {
         const snap = 0.25;
         const p = clampPos(ghost.position.x, ghost.position.z);
@@ -609,6 +780,9 @@
       const hit = floorPoint();
       if (mesh && hit) {
         dragging = { id, offX: hit.x - mesh.position.x, offZ: hit.z - mesh.position.z };
+        // Without this, OrbitControls fights the drag on the very same pointer
+        // events and the item snaps back / never visibly moves.
+        if (core.controls) core.controls.enabled = false;
       }
       return;
     }
@@ -617,6 +791,7 @@
 
   function onPointerUp() {
     if (dragging) { dragging = null; scheduleSave(); }
+    if (core.controls) core.controls.enabled = true;
   }
 
   /* ---------- on-canvas action bar for the selected item ---------- */
@@ -696,11 +871,28 @@
             <input class="decor-hex" value="${brandColor}" maxlength="7" spellcheck="false">
             <button class="decor-co" id="decorCompany">COMPANY</button>
           </div>
+          <div class="decor-sub">FLOOR COLOR</div>
+          <div class="decor-brand">
+            <div class="decor-swatches" id="decorFloorSwatches"></div>
+            <input class="decor-hex" id="decorFloorHex" value="${floorColor}" maxlength="7" spellcheck="false">
+            <button class="decor-co" id="decorFloorWhite" title="reset the floor to white">WHITE</button>
+          </div>
           <div class="decor-subrow">
             <span class="decor-sub">EXISTING OFFICE — CLICK TO EDIT</span>
             <button class="decor-reset" id="decorResetOffice" title="restore the default layout of the current template">RESET</button>
           </div>
           <div class="decor-office-list" id="decorOffice"></div>
+          <div class="decor-sub">ROOMS — ADD ANOTHER ROOM TO THE OFFICE</div>
+          <div class="decor-room-form">
+            <input id="decorRoomName" placeholder="Room name (e.g. Meeting Room)">
+            <div class="decor-room-dims">
+              <label>W<input id="decorRoomW" type="number" min="2" max="20" step="0.5" value="6" title="Width (m)"></label>
+              <label>D<input id="decorRoomD" type="number" min="2" max="20" step="0.5" value="5" title="Depth (m)"></label>
+              <input id="decorRoomColor" type="color" value="#ffffff" title="Room floor color">
+            </div>
+            <button class="decor-btn" id="decorAddRoom" style="width:100%">＋ ADD ROOM</button>
+          </div>
+          <div class="decor-room-list" id="decorRooms"></div>
           <div class="decor-sub">PLACED ITEMS (${items.length})</div>
           <div class="decor-placed-list" id="decorPlaced"></div>
           <div class="decor-actions">
@@ -724,6 +916,8 @@
       `<button class="decor-item" data-t="${c.t}"><span class="di-ico">${c.icon}</span><b>${esc(c.name)}</b></button>`).join('');
     panel.querySelector('#decorSwatches').innerHTML = BRAND_SWATCHES.map((c) =>
       `<button class="decor-swatch ${c.toLowerCase() === brandColor.toLowerCase() ? 'active' : ''}" data-c="${c}" style="background:${c}"></button>`).join('');
+    panel.querySelector('#decorFloorSwatches').innerHTML = FLOOR_SWATCHES.map((c) =>
+      `<button class="decor-swatch decor-floor-swatch ${c.toLowerCase() === floorColor.toLowerCase() ? 'active' : ''}" data-c="${c}" style="background:${c}"></button>`).join('');
 
     panel.querySelector('#decorTpls').addEventListener('click', (e) => {
       const b = e.target.closest('.decor-tpl');
@@ -748,6 +942,27 @@
     });
     panel.querySelector('.decor-hex').addEventListener('keydown', (e) => e.stopPropagation());
     panel.querySelector('#decorCompany').addEventListener('click', companyBrand);
+    panel.querySelector('#decorFloorSwatches').addEventListener('click', (e) => {
+      const b = e.target.closest('.decor-floor-swatch');
+      if (b) setFloorColor(b.dataset.c);
+    });
+    panel.querySelector('#decorFloorHex').addEventListener('change', (e) => {
+      const v = e.target.value.trim();
+      if (/^#[0-9a-fA-F]{6}$/.test(v)) setFloorColor(v);
+    });
+    panel.querySelector('#decorFloorHex').addEventListener('keydown', (e) => e.stopPropagation());
+    panel.querySelector('#decorFloorWhite').addEventListener('click', () => setFloorColor('#ffffff'));
+    panel.querySelector('#decorAddRoom').addEventListener('click', () => {
+      const nameInp = panel.querySelector('#decorRoomName');
+      const wInp = panel.querySelector('#decorRoomW');
+      const dInp = panel.querySelector('#decorRoomD');
+      const colorInp = panel.querySelector('#decorRoomColor');
+      const name = (nameInp.value || '').trim() || ('Room ' + (rooms.length + 1));
+      addRoom({ name, w: Number(wInp.value) || 6, d: Number(dInp.value) || 5, color: colorInp.value || '#ffffff' });
+      nameInp.value = '';
+    });
+    panel.querySelector('#decorRoomName').addEventListener('keydown', (e) => { e.stopPropagation(); if (e.key === 'Enter') panel.querySelector('#decorAddRoom').click(); });
+    panel.querySelectorAll('#decorRoomW,#decorRoomD').forEach((inp) => inp.addEventListener('keydown', (e) => e.stopPropagation()));
     panel.querySelector('#decorUndo').addEventListener('click', undoLast);
     panel.querySelector('#decorClear').addEventListener('click', clearAll);
     panel.querySelector('#decorResetOffice').addEventListener('click', resetOffice);
@@ -808,6 +1023,15 @@
       .decor-reset{border:1px solid var(--line);background:var(--panel);border-radius:6px;padding:2px 7px;font-size:8px;font-weight:700;cursor:pointer;color:var(--ink)}
       .decor-reset:hover{border-color:var(--primary)}
       .decor-office-list{display:flex;flex-direction:column;gap:4px;max-height:170px;overflow-y:auto}
+      .decor-room-form{display:flex;flex-direction:column;gap:5px;border:1px dashed var(--line);border-radius:9px;padding:7px}
+      .decor-room-form input[type="text"],.decor-room-form>input{border:1px solid var(--line);background:#fbfcfe;border-radius:6px;padding:5px 7px;font-size:10px;color:var(--ink)}
+      .theme-dark .decor-room-form>input{background:#0f1728}
+      .decor-room-dims{display:flex;gap:5px;align-items:center}
+      .decor-room-dims label{display:flex;align-items:center;gap:3px;font-size:8.5px;color:var(--muted);font-weight:700}
+      .decor-room-dims input[type="number"]{width:38px;border:1px solid var(--line);background:#fbfcfe;border-radius:6px;padding:4px 5px;font-size:10px;color:var(--ink)}
+      .theme-dark .decor-room-dims input[type="number"]{background:#0f1728}
+      .decor-room-dims input[type="color"]{width:26px;height:26px;border:1px solid var(--line);border-radius:6px;padding:0;cursor:pointer}
+      .decor-room-list{display:flex;flex-direction:column;gap:4px;max-height:130px;overflow-y:auto}
       .decor-tpls{display:grid;grid-template-columns:1fr 1fr;gap:5px}
       .decor-tpl{border:1px solid var(--line);background:var(--panel);border-radius:8px;padding:7px 4px;font-size:10px;font-weight:700;cursor:pointer;color:var(--ink)}
       .decor-tpl:hover{border-color:var(--primary)}
@@ -911,6 +1135,7 @@
       core.scene.add(ghost);
       const preview = new THREE.Mesh(new THREE.BoxGeometry(1.2, 0.02, 0.9), new THREE.MeshBasicMaterial({ color: 0x5a67f2, transparent: true, opacity: 0.45 }));
       ghost.add(preview);
+      hookFloorMat();
       buildPanel();
       buildActBar();
       setColumn(true);
@@ -918,17 +1143,19 @@
       hookOfficeRebuild();
       restore();
       rebuild();
+      rebuildRooms();
       updateCost();
       officeFresh = true;
       applyOfficeEdits();
       styleRoom();
+      setFloorColor(floorColor);
       // friendlier default camera: lower, closer, less "god view"
       try {
         core.camera.position.set(8.6, 6.2, 10.8);
         core.controls.target.set(0, 0.5, 0);
         core.controls.update();
       } catch (_) {}
-      window.__decorDbg = { applyOfficeEdits, renderOfficeList, renderPlaced, officeEdits: () => officeEdits, items: () => items.slice(), group: () => group, dragging: () => dragging, pickAt: (cx, cy) => { const r = core.renderer.domElement.getBoundingClientRect(); mouseNDC.x = ((cx - r.left) / r.width) * 2 - 1; mouseNDC.y = -((cy - r.top) / r.height) * 2 + 1; return pickItem(); } };
+      window.__decorDbg = { applyOfficeEdits, renderOfficeList, renderPlaced, officeEdits: () => officeEdits, items: () => items.slice(), rooms: () => rooms.slice(), group: () => group, dragging: () => dragging, pickAt: (cx, cy) => { const r = core.renderer.domElement.getBoundingClientRect(); mouseNDC.x = ((cx - r.left) / r.width) * 2 - 1; mouseNDC.y = -((cy - r.top) / r.height) * 2 + 1; return pickItem(); } };
       const cv = core.renderer.domElement;
       cv.addEventListener('pointermove', onPointerMove);
       cv.addEventListener('pointerdown', onPointerDown, true);
