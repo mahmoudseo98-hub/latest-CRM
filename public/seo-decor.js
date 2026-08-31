@@ -83,6 +83,7 @@
   let roomsGroup = null;
   let focusAnim = 0;         // bumped to cancel an in-flight camera glide
   let roomsRebuildQueued = false;
+  let editingRoomId = null;  // room the form is currently editing, if any
   let floorColor = '#ffffff'; // the main office floor is white by default and stays editable
   let applyingFloorColor = false;
 
@@ -368,6 +369,55 @@
     if (typeof showToast === 'function') showToast('Added room "' + room.name + '" — drag it into place');
     return room;
   }
+  // Rebuild one room in place, keeping its id, position and rotation.
+  function updateRoom(id, patch) {
+    const room = rooms.find((r) => r.id === id);
+    if (!room) return;
+    if (patch.name != null && patch.name !== '') room.name = patch.name;
+    if (patch.dept != null) room.dept = patch.dept;
+    if (patch.color && /^#[0-9a-fA-F]{6}$/.test(patch.color)) room.color = patch.color;
+    if (patch.w) room.w = Math.max(2, Math.min(20, patch.w));
+    if (patch.d) room.d = Math.max(2, Math.min(20, patch.d));
+    const old = meshById(id);
+    if (old) {
+      roomsGroup.remove(old);
+      old.traverse((o) => { if (o.geometry) o.geometry.dispose(); if (o.material && o.material.map) o.material.map.dispose(); });
+    }
+    const mesh = buildRoom(room);
+    mesh.position.set(room.x, 0, room.z);
+    mesh.rotation.y = room.ry || 0;
+    mesh.userData.decorId = id;
+    roomsGroup.add(mesh);
+    updateCost(); renderRooms(); scheduleSave();
+    select(id);   // re-apply the selection highlight to the new meshes
+    if (typeof showToast === 'function') showToast('Updated "' + room.name + '" — ' + room.w + '×' + room.d + 'm');
+  }
+
+  // Keep the room form pointed at whatever is selected: a room selected in the
+  // scene or the list turns the form into its editor, otherwise it adds a new one.
+  function syncRoomForm() {
+    if (!panel) return;
+    const modeEl = panel.querySelector('#decorRoomMode');
+    const applyBtn = panel.querySelector('#decorRoomApply');
+    if (!modeEl || !applyBtn) return;
+    const room = selectedId ? rooms.find((r) => r.id === selectedId) : null;
+    editingRoomId = room ? room.id : null;
+    if (room) {
+      modeEl.textContent = 'SELECTED: ' + room.name.toUpperCase() + ' — EDIT BELOW, THEN APPLY';
+      applyBtn.style.display = '';
+      applyBtn.title = 'Apply these values to "' + room.name + '"';
+      panel.querySelector('#decorRoomName').value = room.name;
+      panel.querySelector('#decorRoomW').value = room.w;
+      panel.querySelector('#decorRoomD').value = room.d;
+      panel.querySelector('#decorRoomColor').value = room.color || '#ffffff';
+      const deptSel = panel.querySelector('#decorRoomDept');
+      if (deptSel) deptSel.value = room.dept || '';
+    } else {
+      modeEl.textContent = 'NEW ROOM';
+      applyBtn.style.display = 'none';
+    }
+  }
+
   function removeRoom(id) {
     rooms = rooms.filter((r) => r.id !== id);
     const mesh = meshById(id);
@@ -817,6 +867,7 @@
     renderPlaced();
     renderOfficeList();
     renderRooms();
+    syncRoomForm();
     updateActionBar();
     const hint = panel && panel.querySelector('.decor-hint');
     if (hint) {
@@ -1064,6 +1115,7 @@
           <div class="decor-office-list" id="decorOffice"></div>
           <div class="decor-sub">ROOMS — ADD ANOTHER ROOM TO THE OFFICE</div>
           <div class="decor-room-form">
+            <div class="decor-room-mode" id="decorRoomMode">NEW ROOM</div>
             <select id="decorRoomDept"><option value="">No department</option></select>
             <input id="decorRoomName" placeholder="Room name (e.g. Meeting Room)">
             <div class="decor-room-dims">
@@ -1071,7 +1123,10 @@
               <label>D<input id="decorRoomD" type="number" min="2" max="20" step="0.5" value="5" title="Depth (m)"></label>
               <input id="decorRoomColor" type="color" value="#ffffff" title="Room floor color">
             </div>
-            <button class="decor-btn" id="decorAddRoom" style="width:100%">＋ ADD ROOM</button>
+            <div class="decor-room-actions">
+              <button class="decor-btn" id="decorAddRoom">＋ ADD ROOM</button>
+              <button class="decor-btn" id="decorRoomApply" style="display:none">✓ APPLY</button>
+            </div>
           </div>
           <div class="decor-room-list" id="decorRooms"></div>
           <div class="decor-sub">PLACED ITEMS (${items.length})</div>
@@ -1145,8 +1200,23 @@
       addRoom({ name, dept, w: Number(wInp.value) || 6, d: Number(dInp.value) || 5, color: colorInp.value || '#ffffff' });
       nameInp.value = '';
     });
+    // Separate button, so adding never silently turns into editing the room that
+    // happens to be selected (and vice versa).
+    panel.querySelector('#decorRoomApply').addEventListener('click', () => {
+      if (!editingRoomId || !rooms.some((r) => r.id === editingRoomId)) return;
+      updateRoom(editingRoomId, {
+        name: (panel.querySelector('#decorRoomName').value || '').trim(),
+        dept: panel.querySelector('#decorRoomDept').value,
+        w: Number(panel.querySelector('#decorRoomW').value),
+        d: Number(panel.querySelector('#decorRoomD').value),
+        color: panel.querySelector('#decorRoomColor').value || '#ffffff',
+      });
+    });
     panel.querySelector('#decorRoomName').addEventListener('keydown', (e) => { e.stopPropagation(); if (e.key === 'Enter') panel.querySelector('#decorAddRoom').click(); });
-    panel.querySelectorAll('#decorRoomW,#decorRoomD').forEach((inp) => inp.addEventListener('keydown', (e) => e.stopPropagation()));
+    panel.querySelectorAll('#decorRoomW,#decorRoomD').forEach((inp) => inp.addEventListener('keydown', (e) => {
+      e.stopPropagation();
+      if (e.key === 'Enter') panel.querySelector('#decorAddRoom').click();
+    }));
     panel.querySelector('#decorUndo').addEventListener('click', undoLast);
     panel.querySelector('#decorClear').addEventListener('click', clearAll);
     panel.querySelector('#decorResetOffice').addEventListener('click', resetOffice);
@@ -1216,6 +1286,9 @@
       .theme-dark .decor-room-dims input[type="number"]{background:#0f1728}
       .decor-room-dims input[type="color"]{width:26px;height:26px;border:1px solid var(--line);border-radius:6px;padding:0;cursor:pointer}
       .decor-room-list{display:flex;flex-direction:column;gap:4px;max-height:130px;overflow-y:auto}
+      .decor-room-mode{font-family:var(--mono);font-size:7.5px;letter-spacing:.1em;color:var(--primary);font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+      .decor-room-actions{display:flex;gap:5px}
+      .decor-room-actions .decor-btn{flex:1}
       .decor-room-form select{border:1px solid var(--line);background:#fbfcfe;border-radius:6px;padding:5px 7px;font-size:10px;color:var(--ink)}
       .theme-dark .decor-room-form select{background:#0f1728}
       .decor-placed .dp-dept{font-family:var(--mono);font-size:7px;letter-spacing:.06em;border:1px solid var(--primary);border-radius:4px;padding:1px 4px;white-space:nowrap}
