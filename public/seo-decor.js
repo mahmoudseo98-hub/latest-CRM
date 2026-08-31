@@ -81,6 +81,7 @@
   let syncPending = false;
   let rooms = [];            // extra rooms the CEO has added: { id, name, x, z, ry, w, d, color }
   let roomsGroup = null;
+  let focusAnim = 0;         // bumped to cancel an in-flight camera glide
   let floorColor = '#ffffff'; // the main office floor is white by default and stays editable
   let applyingFloorColor = false;
 
@@ -267,6 +268,34 @@
     updateCost();
     renderRooms();
   }
+  // Rooms are placed beside the original office shell, which sits outside the
+  // default camera view — so glide the camera over to whatever we just added or
+  // the row the user clicked, otherwise the room is invisible and feels broken.
+  function focusOn(x, z, spread) {
+    if (!core || !core.camera || !core.controls) return;
+    const token = ++focusAnim;
+    const cam = core.camera;
+    const ctr = core.controls;
+    const dist = Math.max(10, (spread || 6) * 2.1);
+    const startPos = cam.position.clone();
+    const startTgt = ctr.target.clone();
+    const endTgt = new THREE.Vector3(x, 0.5, z);
+    const dir = startPos.clone().sub(startTgt);
+    if (dir.lengthSq() < 0.0001) dir.set(7, 6, 9);
+    const endPos = endTgt.clone().add(dir.normalize().multiplyScalar(dist));
+    const t0 = performance.now();
+    const dur = 450;
+    (function step() {
+      if (token !== focusAnim) return;   // superseded, or the user grabbed the scene
+      const t = Math.min(1, (performance.now() - t0) / dur);
+      const eased = 1 - Math.pow(1 - t, 3);
+      cam.position.lerpVectors(startPos, endPos, eased);
+      ctr.target.lerpVectors(startTgt, endTgt, eased);
+      ctr.update();
+      if (t < 1) requestAnimationFrame(step);
+    })();
+  }
+
   function addRoom(spec) {
     const id = nextRoomId();
     const w = Math.max(2, Math.min(20, spec.w || 6));
@@ -281,6 +310,7 @@
     roomsGroup.add(mesh);
     updateCost(); renderRooms(); scheduleSave();
     select(id);
+    focusOn(room.x, room.z, Math.max(room.w, room.d));
     if (typeof showToast === 'function') showToast('Added room "' + room.name + '" — drag it into place');
     return room;
   }
@@ -297,11 +327,16 @@
     if (!wrap) return;
     if (!rooms.length) { wrap.innerHTML = '<div class="decor-placed-empty">No extra rooms yet — name one above and click Add room.</div>'; return; }
     wrap.innerHTML = rooms.map((r) =>
-      '<div class="decor-placed ' + (r.id === selectedId ? 'sel' : '') + '" data-id="' + r.id + '" title="drag to move · R rotate · ✕ removes">' +
+      '<div class="decor-placed ' + (r.id === selectedId ? 'sel' : '') + '" data-id="' + r.id + '" title="click to jump the camera to it · drag to move · R rotate · ✕ removes">' +
       '<span class="dp-name">' + esc(r.name) + '</span>' +
       '<button class="dp-del" data-id="' + r.id + '" title="remove room">✕</button></div>').join('');
     wrap.querySelectorAll('.dp-del').forEach((b) => b.addEventListener('click', (e) => { e.stopPropagation(); removeRoom(b.dataset.id); }));
-    wrap.querySelectorAll('.decor-placed').forEach((row) => row.addEventListener('click', () => select(row.dataset.id)));
+    wrap.querySelectorAll('.decor-placed').forEach((row) => row.addEventListener('click', () => {
+      const id = row.dataset.id;
+      select(id);
+      const r = rooms.find((x) => x.id === id);
+      if (r) focusOn(r.x, r.z, Math.max(r.w, r.d));
+    }));
   }
 
   /* ---------- floor color ---------- */
@@ -776,6 +811,7 @@
   }
 
   function onPointerDown(e) {
+    focusAnim++;   // stop any camera glide the moment the user touches the scene
     if (armedType) {
       e.preventDefault();
       e.stopPropagation();

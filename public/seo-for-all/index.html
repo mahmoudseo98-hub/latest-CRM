@@ -1735,7 +1735,9 @@ import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
   controls.enableDamping = true;
   controls.dampingFactor = 0.08;
   controls.minDistance = 5;
-  controls.maxDistance = 28;
+  // Roomy enough to pull back and see rooms added outside the original office
+  // shell (the decor studio can place them well past these walls).
+  controls.maxDistance = 80;
   controls.minPolarAngle = 0;
   controls.maxPolarAngle = Math.PI * 0.49;
   controls.target.set(0, 1, 0);
@@ -2709,6 +2711,15 @@ import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
   let lastTime = performance.now();
   function tick(now) {
     lastTime = now;
+    // Push the fog back as the camera pulls out. The per-theme fog is tuned for the
+    // default ~15-unit viewing distance, so zooming out past fogFar would otherwise
+    // bury the whole office (and any rooms added beside it) in solid fog colour.
+    if (scene.fog) {
+      const theme = DECOR_THEMES[ws3dState.theme];
+      const pulled = Math.max(0, camera.position.distanceTo(controls.target) - 15);
+      scene.fog.near = theme.fogNear + pulled;
+      scene.fog.far = theme.fogFar + pulled * 2.2;
+    }
     // Pulse risk rings
     if (riskGroup.visible) {
       const t = now * 0.001;
