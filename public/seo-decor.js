@@ -82,6 +82,7 @@
   let rooms = [];            // extra rooms the CEO has added: { id, name, x, z, ry, w, d, color }
   let roomsGroup = null;
   let focusAnim = 0;         // bumped to cancel an in-flight camera glide
+  let roomsRebuildQueued = false;
   let floorColor = '#ffffff'; // the main office floor is white by default and stays editable
   let applyingFloorColor = false;
 
@@ -231,26 +232,75 @@
   function roomBounds() { return { hw: core.ROOM_W * 2, hd: core.ROOM_D * 2 }; }
   function clampRoomPos(x, z) { const b = roomBounds(); return { x: Math.max(-b.hw, Math.min(b.hw, x)), z: Math.max(-b.hd, Math.min(b.hd, z)) }; }
   function buildRoom(room) {
+    // Built to match the main office shell: same floor material, same 0.5-unit
+    // grid, same glass walls and skirting — an added room should read as another
+    // room of the same building, not a grey crate parked outside it.
     const g = new THREE.Group();
-    const floorGeo = new THREE.PlaneGeometry(room.w, room.d);
-    const floorMesh = new THREE.Mesh(floorGeo, mat(room.color || '#ffffff', 0.75, 0));
+    const th = (core.DECOR_THEMES && core.DECOR_THEMES[core.ws3dState.theme]) || {};
+    const H = core.ROOM_H;
+
+    const floorMesh = new THREE.Mesh(
+      new THREE.PlaneGeometry(room.w, room.d),
+      new THREE.MeshStandardMaterial({
+        color: room.color || '#ffffff',
+        roughness: th.floorRough == null ? 0.78 : th.floorRough,
+        metalness: th.floorMetal == null ? 0.15 : th.floorMetal,
+      })
+    );
     floorMesh.rotation.x = -Math.PI / 2;
     floorMesh.position.y = 0.012;
     floorMesh.receiveShadow = true;
     g.add(floorMesh);
-    const wallH = 1.6;
-    // A department room wears its department's colour on the walls, matching the
-    // legend and the workstation colours in the main office.
-    const wallHex = room.dept && typeof window.ws3dDeptColorHex === 'function'
-      ? window.ws3dDeptColorHex(room.dept) : '#c9d3e6';
-    const wallMatRoom = new THREE.MeshStandardMaterial({ color: wallHex, transparent: true, opacity: room.dept ? 0.45 : 0.4, roughness: 0.3, metalness: 0, side: THREE.DoubleSide, depthWrite: false });
-    const mkWall = (w, d, x, z) => { const wm = new THREE.Mesh(new THREE.BoxGeometry(w, wallH, d), wallMatRoom); wm.position.set(x, wallH / 2 + 0.012, z); wm.castShadow = false; g.add(wm); };
-    mkWall(room.w, 0.08, 0, -room.d / 2);
-    mkWall(room.w, 0.08, 0, room.d / 2);
-    mkWall(0.08, room.d, -room.w / 2, 0);
-    mkWall(0.08, room.d, room.w / 2, 0);
+
+    // Department rooms get the same faint floor tint the main office uses for its
+    // department zones.
+    if (room.dept && typeof window.ws3dDeptColorHex === 'function') {
+      const zone = new THREE.Mesh(
+        new THREE.PlaneGeometry(room.w - 0.2, room.d - 0.2),
+        new THREE.MeshBasicMaterial({ color: window.ws3dDeptColorHex(room.dept), transparent: true, opacity: 0.16, depthWrite: false })
+      );
+      zone.rotation.x = -Math.PI / 2;
+      zone.position.y = 0.016;
+      g.add(zone);
+    }
+
+    const divisions = Math.max(2, Math.round(room.w / 0.5));
+    const grid = new THREE.GridHelper(room.w, divisions, th.gridMain || 0x4a5588, th.gridSub || 0x2a3260);
+    grid.position.y = 0.018;
+    grid.scale.z = room.d / room.w;
+    grid.material.opacity = 0.2;
+    grid.material.transparent = true;
+    g.add(grid);
+
+    const wallMatRoom = new THREE.MeshStandardMaterial({
+      color: th.wall || 0x8fa3d8,
+      roughness: th.wallRough == null ? 0.95 : th.wallRough,
+      transparent: true, opacity: 0.32, side: THREE.DoubleSide, depthWrite: false,
+    });
+    const baseMatRoom = new THREE.MeshStandardMaterial({ color: th.base || 0x10182b, roughness: 0.7 });
+    const mkWall = (w, d, x, z) => {
+      const wm = new THREE.Mesh(new THREE.BoxGeometry(w, H, d), wallMatRoom);
+      wm.position.set(x, H / 2, z);
+      wm.receiveShadow = true;
+      g.add(wm);
+    };
+    mkWall(room.w, 0.15, 0, -room.d / 2);
+    mkWall(room.w, 0.15, 0, room.d / 2);
+    mkWall(0.15, room.d, -room.w / 2, 0);
+    mkWall(0.15, room.d, room.w / 2, 0);
+
+    const mkBase = (w, d, x, z) => {
+      const b = new THREE.Mesh(new THREE.BoxGeometry(w, 0.08, d), baseMatRoom);
+      b.position.set(x, 0.055, z);
+      g.add(b);
+    };
+    mkBase(room.w, 0.02, 0, -room.d / 2 + 0.085);
+    mkBase(room.w, 0.02, 0, room.d / 2 - 0.085);
+    mkBase(0.02, room.d, -room.w / 2 + 0.085, 0);
+    mkBase(0.02, room.d, room.w / 2 - 0.085, 0);
+
     const label = makeLabelSprite(room.name || 'Room');
-    label.position.set(0, wallH + 0.45, 0);
+    label.position.set(0, H + 0.4, 0);
     g.add(label);
     g.userData.isRoom = true;
     return g;
@@ -379,6 +429,13 @@
         applyingFloorColor = true;
         fm.color.set(floorColor);
         applyingFloorColor = false;
+      }
+      // The office theme just changed (this is the only thing that repaints the
+      // floor); added rooms borrow their walls, grid and skirting from the theme,
+      // so rebuild them to match rather than leaving them on the old palette.
+      if (roomsGroup && rooms.length && !roomsRebuildQueued) {
+        roomsRebuildQueued = true;
+        setTimeout(() => { roomsRebuildQueued = false; try { rebuildRooms(); } catch (_) {} }, 0);
       }
       return r;
     };
@@ -947,7 +1004,7 @@
     shellStyle.setProperty('--decor-w', open ? COL_OPEN : COL_CLOSED);
     if (panel) panel.classList.toggle('collapsed', !open);
     const fold = panel && panel.querySelector('#decorFold');
-    if (fold) fold.textContent = open ? '»' : '«';
+    if (fold) fold.textContent = '✕';
     const lbl = panel && panel.querySelector('.decor-vlabel');
     if (lbl) lbl.style.display = open ? 'none' : 'block';
     const body = panel && panel.querySelector('.decor-body');
@@ -980,7 +1037,7 @@
       <div class="decor-vlabel" style="display:none">OFFICE DECOR</div>
       <div class="decor-head">
         <b>OFFICE DECOR</b>
-        <span style="display:flex;gap:8px;align-items:center"><span class="decor-autosave"></span><button class="decor-fold" id="decorFold" title="collapse/expand">»</button></span>
+        <span style="display:flex;gap:8px;align-items:center"><span class="decor-autosave"></span><button class="decor-fold" id="decorFold" title="Hide this panel (the header's Show panels button brings it back)">✕</button></span>
       </div>
       <div class="decor-body">
         <div class="decor-scroll">
