@@ -707,7 +707,7 @@ button:not(:disabled):hover{filter:saturate(1.04)}
       </section>
 
       <section id="workspace3d" class="view">
-        <div class="title-row"><div><div class="eyebrow">Spatial Intelligence</div><h1>3D Workspace Visualizer</h1><div class="subtitle">Walk through the SEO For All office in 3D — see teams, occupancy, leave exposure and coverage links across departments in one interactive scene.</div></div><div class="ws3d-head-tools"><div class="ws3d-view-toggle" id="ws3dViewToggle"><button data-view="perspective" class="active">⬢ Perspective</button><button data-view="top">⬚ Top-down</button></div><button class="ws3d-focus-btn" id="ws3dFocusBtn" type="button" aria-pressed="false" title="Hide all side panels for a full-width scene  ( F )">⛶ Focus</button></div></div>
+        <div class="title-row"><div><div class="eyebrow">Spatial Intelligence</div><h1>3D Workspace Visualizer</h1><div class="subtitle">Walk through the SEO For All office in 3D — see teams, occupancy, leave exposure and coverage links across departments in one interactive scene.</div></div><div class="ws3d-head-tools"><div class="ws3d-view-toggle" id="ws3dViewToggle"><button data-view="perspective" class="active">⬢ Perspective</button><button data-view="top">⬚ Top-down</button></div><button class="ws3d-focus-btn" id="ws3dFocusBtn" type="button" aria-pressed="true" title="Show the Layout, Activity and Office Decor panels  ( F )">☰ Show panels</button></div></div>
 
         <div class="ws3d-kpis">
           <div class="ws3d-kpi"><div class="label">Active workstations</div><div class="value" id="ws3dKpiActive">8 / 8</div><div class="delta" id="ws3dKpiActiveDelta">Across 6 departments</div></div>
@@ -2438,7 +2438,9 @@ import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
   // with hardcoded column widths. An inline important declaration outranks it, so this
   // works with any version of that file (and whether or not the decor column exists).
   const PANEL_LS_KEY = 'seo-ws3d-panels';
-  const RAIL_W = 38;
+  // Collapsed panels are fully hidden (0px) — the per-panel rail/fold buttons are
+  // no longer shown; the single "Panels" button in the header is the only control.
+  const RAIL_W = 0;
   const panelIds = { l: 'ws3dAsideL', r: 'ws3dAsideR' };
   const panelState = { l: false, r: false };   // true = collapsed
   let focusRestore = null;
@@ -2510,7 +2512,9 @@ import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
     const on = inFocusMode();
     focusBtn.classList.toggle('active', on);
     focusBtn.setAttribute('aria-pressed', String(on));
-    focusBtn.textContent = on ? '⛶ Exit focus' : '⛶ Focus';
+    // "on" = every side panel is hidden right now, so the button's job is to show them.
+    focusBtn.textContent = on ? '☰ Show panels' : '✕ Hide panels';
+    focusBtn.title = (on ? 'Show the Layout, Activity and Office Decor panels' : 'Hide all side panels for a full-width scene') + '  ( F )';
   }
   function toggleFocusMode() {
     if (inFocusMode()) {
@@ -2534,6 +2538,11 @@ import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
   document.querySelectorAll('[data-ws3d-expand]').forEach(btn => {
     btn.addEventListener('click', () => setPanel(btn.dataset.ws3dExpand, false));
   });
+  // The Layout/Activity panels used to carry their own per-panel expand/collapse
+  // buttons alongside the header's Focus button — three separate controls for one
+  // job. The single header button (below) now owns showing/hiding all of them, so
+  // hide the redundant per-panel ones instead of ripping out their wiring.
+  document.querySelectorAll('[data-ws3d-fold], [data-ws3d-expand]').forEach(btn => { btn.style.display = 'none'; });
   if (focusBtn) focusBtn.addEventListener('click', toggleFocusMode);
 
   document.addEventListener('keydown', e => {
@@ -2556,10 +2565,13 @@ import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
   }
 
   (function restorePanels() {
-    let saved = {};
-    try { saved = JSON.parse(localStorage.getItem(PANEL_LS_KEY)) || {}; } catch (_) {}
-    setPanel('l', !!saved.l, { persist: false, sync: false });
-    setPanel('r', !!saved.r, { persist: false, sync: false });
+    let saved = null;
+    try { saved = JSON.parse(localStorage.getItem(PANEL_LS_KEY)); } catch (_) {}
+    // First-ever visit (nothing saved yet): start with every panel hidden, so the
+    // scene opens full-width and the single header button is how you bring them up.
+    const hasSaved = saved && typeof saved === 'object';
+    setPanel('l', hasSaved ? !!saved.l : true, { persist: false, sync: false });
+    setPanel('r', hasSaved ? !!saved.r : true, { persist: false, sync: false });
     syncFocusBtn();
   })();
 

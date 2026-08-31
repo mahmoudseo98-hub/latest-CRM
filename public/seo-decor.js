@@ -10,7 +10,11 @@
   const LS_KEY = 'seo-office-decor';
   const THEME_KEY = 'seo-ui-theme';
   const COL_OPEN = '236px';
-  const COL_CLOSED = '46px';
+  // Fully hidden when collapsed — this panel's own fold button/vertical label are
+  // no longer the way to reopen it; the single "Show panels" button in the 3D
+  // Workspace header (index.html) now owns showing/hiding it alongside the other
+  // two side panels.
+  const COL_CLOSED = '0px';
 
   const CATALOG = [
     { t: 'desk', name: 'Desk Cluster', icon: '🖥️', w: 1.6, d: 0.9 },
@@ -401,6 +405,13 @@
     [...core.decoGroup.children].forEach((c) => {
       if (ed.removed.indexOf(c.userData.decorId) !== -1) core.decoGroup.remove(c);
     });
+    // Employee desks aren't deleted from companyData by the trash button (that's
+    // an HR action, done from "Edit employees & departments") — just hidden from
+    // the 3D scene. Re-applied on every rebuild so it survives template/theme
+    // switches, and a workstation's own userData stays intact for stats/coverage.
+    workstations().forEach((w) => {
+      w.visible = ed.removed.indexOf(w.userData.decorId) === -1;
+    });
     // apply moves
     Object.entries(ed.moved).forEach(([id, m]) => {
       const c = core.decoGroup.children.find((x) => x.userData.decorId === id);
@@ -516,9 +527,10 @@
     });
     if (!rows.length) { wrap.innerHTML = '<div class="decor-placed-empty">No existing office furniture in this layout.</div>'; return; }
     wrap.innerHTML = rows.map((r) =>
-      '<div class="decor-placed ' + (r.id === selectedId ? 'sel' : '') + '" data-id="' + r.id + '" title="' + (r.desk ? 'employee desk — drag to move, cannot be removed' : 'click to select · drag to move · ✕ removes') + '">' +
+      '<div class="decor-placed ' + (r.id === selectedId ? 'sel' : '') + '" data-id="' + r.id + '" title="' + (r.desk ? 'employee desk — drag to move · ✕ hides it (RESET brings it back)' : 'click to select · drag to move · ✕ removes') + '">' +
       '<span class="dp-name">' + esc(r.name) + '</span>' +
-      (r.desk ? '<span class="dp-desk">DESK</span>' : '<button class="dp-del" data-id="' + r.id + '" title="remove">✕</button>') +
+      (r.desk ? '<span class="dp-desk">DESK</span>' : '') +
+      '<button class="dp-del" data-id="' + r.id + '" title="' + (r.desk ? 'hide this desk' : 'remove') + '">✕</button>' +
       '</div>').join('');
     wrap.querySelectorAll('.dp-del').forEach((b) => b.addEventListener('click', (e) => { e.stopPropagation(); removeSelectedId(b.dataset.id); }));
     wrap.querySelectorAll('.decor-placed').forEach((row) => row.addEventListener('click', () => select(row.dataset.id)));
@@ -545,10 +557,16 @@
   }
 
   function removeSelectedId(id) {
-    if (isOfficeDesk(id)) { return; } // employee desks are movable, not removable
-    if (id.indexOf('o:deco:') === 0) {
+    if (id.indexOf('o:deco:') === 0 || isOfficeDesk(id)) {
       const mesh = meshById(id);
-      if (mesh) core.decoGroup.remove(mesh);
+      if (isOfficeDesk(id)) {
+        // Hide, don't delete: the employee record stays intact, only the desk
+        // disappears from the 3D scene. RESET (or a role/template change) brings
+        // it back.
+        if (mesh) mesh.visible = false;
+      } else if (mesh) {
+        core.decoGroup.remove(mesh);
+      }
       const ed = officeEditsFor();
       if (ed.removed.indexOf(id) === -1) ed.removed.push(id);
       if (selectedId === id) { selectedId = null; updateActionBar(); }
@@ -672,7 +690,7 @@
     const hint = panel && panel.querySelector('.decor-hint');
     if (hint) {
       if (!id) hint.textContent = 'CLICK AN ITEM ABOVE, THEN CLICK THE FLOOR';
-      else if (isOfficeDesk(id)) hint.textContent = 'EMPLOYEE DESK — drag to move · R rotate';
+      else if (isOfficeDesk(id)) hint.textContent = 'EMPLOYEE DESK — drag to move · R rotate · Del hides it';
       else if (id.indexOf('o:deco:') === 0) hint.textContent = 'EXISTING OFFICE — drag to move · R rotate · Del remove';
       else if (/^r\d/.test(id)) hint.textContent = 'ROOM — drag to move · R rotate · Del delete';
       else hint.textContent = 'SELECTED — drag to move · R rotate · Del delete';
@@ -1138,7 +1156,10 @@
       hookFloorMat();
       buildPanel();
       buildActBar();
-      setColumn(true);
+      // Starts collapsed so all three side panels (Layout, Activity, Office Decor)
+      // are hidden by default — index.html's single "Show panels" header button
+      // is what brings them all up together.
+      setColumn(false);
       addThemeButtons();
       hookOfficeRebuild();
       restore();
