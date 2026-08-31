@@ -239,7 +239,11 @@
     floorMesh.receiveShadow = true;
     g.add(floorMesh);
     const wallH = 1.6;
-    const wallMatRoom = new THREE.MeshStandardMaterial({ color: 0xc9d3e6, transparent: true, opacity: 0.4, roughness: 0.3, metalness: 0, side: THREE.DoubleSide, depthWrite: false });
+    // A department room wears its department's colour on the walls, matching the
+    // legend and the workstation colours in the main office.
+    const wallHex = room.dept && typeof window.ws3dDeptColorHex === 'function'
+      ? window.ws3dDeptColorHex(room.dept) : '#c9d3e6';
+    const wallMatRoom = new THREE.MeshStandardMaterial({ color: wallHex, transparent: true, opacity: room.dept ? 0.45 : 0.4, roughness: 0.3, metalness: 0, side: THREE.DoubleSide, depthWrite: false });
     const mkWall = (w, d, x, z) => { const wm = new THREE.Mesh(new THREE.BoxGeometry(w, wallH, d), wallMatRoom); wm.position.set(x, wallH / 2 + 0.012, z); wm.castShadow = false; g.add(wm); };
     mkWall(room.w, 0.08, 0, -room.d / 2);
     mkWall(room.w, 0.08, 0, room.d / 2);
@@ -302,7 +306,7 @@
     const d = Math.max(2, Math.min(20, spec.d || 5));
     const x = core.ROOM_W / 2 + 1.0 + w / 2;
     const z = -core.ROOM_D / 2 + d / 2 + rooms.length * (d + 1.2);
-    const room = { id, name: spec.name || ('Room ' + (rooms.length + 1)), x, z, ry: 0, w, d, color: spec.color || '#ffffff' };
+    const room = { id, name: spec.name || ('Room ' + (rooms.length + 1)), x, z, ry: 0, w, d, color: spec.color || '#ffffff', dept: spec.dept || '' };
     rooms.push(room);
     const mesh = buildRoom(room);
     mesh.position.set(room.x, 0, room.z);
@@ -321,15 +325,39 @@
     if (selectedId === id) { selectedId = null; updateActionBar(); }
     updateCost(); renderRooms(); scheduleSave();
   }
+  function departmentList() {
+    if (typeof window.ws3dGetDepartments === 'function') {
+      try { return window.ws3dGetDepartments(); } catch (_) {}
+    }
+    return ['Marketing', 'IT', 'Design', 'Finance', 'Sales', 'Operations'];
+  }
+  function populateRoomDepts() {
+    if (!panel) return;
+    const sel = panel.querySelector('#decorRoomDept');
+    if (!sel) return;
+    const current = sel.value;
+    sel.innerHTML = '<option value="">No department</option>' +
+      departmentList().map((d) => '<option value="' + esc(d) + '">' + esc(d) + '</option>').join('');
+    if (current) sel.value = current;
+  }
+  // Everything standing inside a room's footprint travels with it.
+  function itemsInRoom(room) {
+    const hw = room.w / 2, hd = room.d / 2;
+    return items.filter((it) => Math.abs(it.x - room.x) <= hw && Math.abs(it.z - room.z) <= hd);
+  }
   function renderRooms() {
     if (!panel) return;
     const wrap = panel.querySelector('.decor-room-list');
     if (!wrap) return;
     if (!rooms.length) { wrap.innerHTML = '<div class="decor-placed-empty">No extra rooms yet — name one above and click Add room.</div>'; return; }
-    wrap.innerHTML = rooms.map((r) =>
-      '<div class="decor-placed ' + (r.id === selectedId ? 'sel' : '') + '" data-id="' + r.id + '" title="click to jump the camera to it · drag to move · R rotate · ✕ removes">' +
-      '<span class="dp-name">' + esc(r.name) + '</span>' +
-      '<button class="dp-del" data-id="' + r.id + '" title="remove room">✕</button></div>').join('');
+    wrap.innerHTML = rooms.map((r) => {
+      const inside = itemsInRoom(r).length;
+      const tag = r.dept ? '<span class="dp-dept" style="border-color:' + (typeof window.ws3dDeptColorHex === 'function' ? window.ws3dDeptColorHex(r.dept) : '#5a67f2') + ';color:' + (typeof window.ws3dDeptColorHex === 'function' ? window.ws3dDeptColorHex(r.dept) : '#5a67f2') + '">' + esc(r.dept) + '</span>' : '';
+      return '<div class="decor-placed ' + (r.id === selectedId ? 'sel' : '') + '" data-id="' + r.id + '" title="click to jump the camera to it · drag to move (contents come along) · R rotate · ✕ removes">' +
+        '<span class="dp-name">' + esc(r.name) + (inside ? ' · ' + inside + ' item' + (inside === 1 ? '' : 's') : '') + '</span>' +
+        tag +
+        '<button class="dp-del" data-id="' + r.id + '" title="remove room">✕</button></div>';
+    }).join('');
     wrap.querySelectorAll('.dp-del').forEach((b) => b.addEventListener('click', (e) => { e.stopPropagation(); removeRoom(b.dataset.id); }));
     wrap.querySelectorAll('.decor-placed').forEach((row) => row.addEventListener('click', () => {
       const id = row.dataset.id;
@@ -373,7 +401,7 @@
   function save() {
     const data = {
       items: items.map((it) => ({ t: it.t, x: it.x, z: it.z, ry: it.ry })),
-      rooms: rooms.map((r) => ({ name: r.name, x: r.x, z: r.z, ry: r.ry, w: r.w, d: r.d, color: r.color })),
+      rooms: rooms.map((r) => ({ name: r.name, x: r.x, z: r.z, ry: r.ry, w: r.w, d: r.d, color: r.color, dept: r.dept || '' })),
       brand: brandColor, theme: core.ws3dState.theme,
       floorColor: floorColor,
       officeEdits: officeEdits,
@@ -393,7 +421,7 @@
     setFloorColor(/^#[0-9a-fA-F]{6}$/.test(data.floorColor || '') ? data.floorColor : floorColor);
     if (data.officeEdits) officeEdits = data.officeEdits;
     (data.items || []).forEach((it) => { if (CATALOG.some((c) => c.t === it.t)) items.push({ t: it.t, x: it.x, z: it.z, ry: it.ry || 0, id: nextId() }); });
-    (data.rooms || []).forEach((r) => { rooms.push({ id: nextRoomId(), name: r.name || 'Room', x: r.x || 0, z: r.z || 0, ry: r.ry || 0, w: r.w || 6, d: r.d || 5, color: /^#[0-9a-fA-F]{6}$/.test(r.color || '') ? r.color : '#ffffff' }); });
+    (data.rooms || []).forEach((r) => { rooms.push({ id: nextRoomId(), name: r.name || 'Room', x: r.x || 0, z: r.z || 0, ry: r.ry || 0, w: r.w || 6, d: r.d || 5, color: /^#[0-9a-fA-F]{6}$/.test(r.color || '') ? r.color : '#ffffff', dept: r.dept || '' }); });
   }
 
   /* ---------- scene management ---------- */
@@ -401,7 +429,18 @@
   let idCounter = 1;
   function nextId() { return 'd' + (idCounter++); }
   function nextRoomId() { return 'r' + (idCounter++); }
-  function bounds() { return { hw: core.ROOM_W / 2 - 0.7, hd: core.ROOM_D / 2 - 0.7 }; }
+  // Furniture may be placed anywhere on the campus: the original office shell OR
+  // any room added beside it. Clamping to the original walls (as this used to)
+  // made rooms impossible to furnish — clicks inside them snapped back indoors.
+  function bounds() {
+    let hw = core.ROOM_W / 2 - 0.7;
+    let hd = core.ROOM_D / 2 - 0.7;
+    rooms.forEach((r) => {
+      hw = Math.max(hw, Math.abs(r.x) + r.w / 2);
+      hd = Math.max(hd, Math.abs(r.z) + r.d / 2);
+    });
+    return { hw, hd };
+  }
   function clampPos(x, z) { const b = bounds(); return { x: Math.max(-b.hw, Math.min(b.hw, x)), z: Math.max(-b.hd, Math.min(b.hd, z)) }; }
 
   function rebuild() {
@@ -802,6 +841,18 @@
             const it = itemById(dragging.id);
             if (it) { it.x = p.x; it.z = p.z; }
           }
+          if (dragging.contents && dragging.roomStart) {
+            const dx = p.x - dragging.roomStart.x;
+            const dz = p.z - dragging.roomStart.z;
+            dragging.contents.forEach((c) => {
+              const item = items.find((i) => i.id === c.id);
+              const m = meshById(c.id);
+              if (!item || !m) return;
+              item.x = c.x0 + dx;
+              item.z = c.z0 + dz;
+              m.position.set(item.x, 0, item.z);
+            });
+          }
           updateActionBar();
         }
       }
@@ -834,6 +885,13 @@
       const hit = floorPoint();
       if (mesh && hit) {
         dragging = { id, offX: hit.x - mesh.position.x, offZ: hit.z - mesh.position.z };
+        const room = /^r\d/.test(id) ? rooms.find((r) => r.id === id) : null;
+        if (room) {
+          // Snapshot what is standing in the room now, so furniture rides along
+          // instead of being left behind (or picked up mid-drag as it sweeps past).
+          dragging.roomStart = { x: room.x, z: room.z };
+          dragging.contents = itemsInRoom(room).map((it) => ({ id: it.id, x0: it.x, z0: it.z }));
+        }
         // Without this, OrbitControls fights the drag on the very same pointer
         // events and the item snaps back / never visibly moves.
         if (core.controls) core.controls.enabled = false;
@@ -899,7 +957,18 @@
   function resizeCanvas() {
     if (!core || !core.container) return;
     try {
-      if (core.container.clientWidth > 0) core.renderer.setSize(core.container.clientWidth, core.container.clientHeight);
+      const w = core.container.clientWidth;
+      const h = core.container.clientHeight;
+      if (w > 0 && h > 0) {
+        core.renderer.setSize(w, h);
+        // Resizing the renderer without re-deriving the camera aspect leaves the
+        // projection (and therefore every picking ray) skewed, so clicks land on
+        // the wrong spot until something else happens to fix it up.
+        if (core.camera && core.camera.isPerspectiveCamera) {
+          core.camera.aspect = w / h;
+          core.camera.updateProjectionMatrix();
+        }
+      }
     } catch (_) {}
   }
 
@@ -938,6 +1007,7 @@
           <div class="decor-office-list" id="decorOffice"></div>
           <div class="decor-sub">ROOMS — ADD ANOTHER ROOM TO THE OFFICE</div>
           <div class="decor-room-form">
+            <select id="decorRoomDept"><option value="">No department</option></select>
             <input id="decorRoomName" placeholder="Room name (e.g. Meeting Room)">
             <div class="decor-room-dims">
               <label>W<input id="decorRoomW" type="number" min="2" max="20" step="0.5" value="6" title="Width (m)"></label>
@@ -970,6 +1040,7 @@
       `<button class="decor-item" data-t="${c.t}"><span class="di-ico">${c.icon}</span><b>${esc(c.name)}</b></button>`).join('');
     panel.querySelector('#decorSwatches').innerHTML = BRAND_SWATCHES.map((c) =>
       `<button class="decor-swatch ${c.toLowerCase() === brandColor.toLowerCase() ? 'active' : ''}" data-c="${c}" style="background:${c}"></button>`).join('');
+    populateRoomDepts();
     panel.querySelector('#decorFloorSwatches').innerHTML = FLOOR_SWATCHES.map((c) =>
       `<button class="decor-swatch decor-floor-swatch ${c.toLowerCase() === floorColor.toLowerCase() ? 'active' : ''}" data-c="${c}" style="background:${c}"></button>`).join('');
 
@@ -1011,8 +1082,10 @@
       const wInp = panel.querySelector('#decorRoomW');
       const dInp = panel.querySelector('#decorRoomD');
       const colorInp = panel.querySelector('#decorRoomColor');
-      const name = (nameInp.value || '').trim() || ('Room ' + (rooms.length + 1));
-      addRoom({ name, w: Number(wInp.value) || 6, d: Number(dInp.value) || 5, color: colorInp.value || '#ffffff' });
+      const deptInp = panel.querySelector('#decorRoomDept');
+      const dept = deptInp ? deptInp.value : '';
+      const name = (nameInp.value || '').trim() || (dept ? dept + ' Room' : 'Room ' + (rooms.length + 1));
+      addRoom({ name, dept, w: Number(wInp.value) || 6, d: Number(dInp.value) || 5, color: colorInp.value || '#ffffff' });
       nameInp.value = '';
     });
     panel.querySelector('#decorRoomName').addEventListener('keydown', (e) => { e.stopPropagation(); if (e.key === 'Enter') panel.querySelector('#decorAddRoom').click(); });
@@ -1086,6 +1159,9 @@
       .theme-dark .decor-room-dims input[type="number"]{background:#0f1728}
       .decor-room-dims input[type="color"]{width:26px;height:26px;border:1px solid var(--line);border-radius:6px;padding:0;cursor:pointer}
       .decor-room-list{display:flex;flex-direction:column;gap:4px;max-height:130px;overflow-y:auto}
+      .decor-room-form select{border:1px solid var(--line);background:#fbfcfe;border-radius:6px;padding:5px 7px;font-size:10px;color:var(--ink)}
+      .theme-dark .decor-room-form select{background:#0f1728}
+      .decor-placed .dp-dept{font-family:var(--mono);font-size:7px;letter-spacing:.06em;border:1px solid var(--primary);border-radius:4px;padding:1px 4px;white-space:nowrap}
       .decor-tpls{display:grid;grid-template-columns:1fr 1fr;gap:5px}
       .decor-tpl{border:1px solid var(--line);background:var(--panel);border-radius:8px;padding:7px 4px;font-size:10px;font-weight:700;cursor:pointer;color:var(--ink)}
       .decor-tpl:hover{border-color:var(--primary)}
