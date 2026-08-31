@@ -61,7 +61,7 @@ try {
     await page.locator('#dashboard.view.active').waitFor();
     assert.equal(await page.locator('#nav button[data-view]').count(), 14);
 
-    const modules = ['dashboard', 'organization', 'attendance', 'tasks', 'workspaces', 'projecttools', 'requests', 'discussions', 'performance', 'ai', 'governance', 'reports', 'settings'];
+    const modules = ['dashboard', 'organization', 'attendance', 'tasks', 'workspaces', 'projecttools', 'requests', 'discussions', 'performance', 'governance', 'reports', 'settings'];
     for (const module of modules) {
       await page.evaluate((id) => window.navigate(id), module);
       await page.locator(`#${module}.view.active`).waitFor();
@@ -119,7 +119,7 @@ try {
 
     assert.deepEqual(externalRequests, []);
     assert.deepEqual(pageErrors, []);
-    console.log('E2E PASS: setup, launcher, all 14 modules, tasks, 3D/decor, RBAC, theme persistence, devices, SSE punches, and name enrollment.');
+    console.log('E2E PASS: setup, launcher, all 13 modules, tasks, 3D/decor, RBAC, theme persistence, devices, SSE punches, and name enrollment.');
   } finally {
     await context.close();
     await browser.close();

@@ -36,13 +36,12 @@ The left navigation contains:
 7. Assistance Requests
 8. Company Discussions
 9. Performance
-10. Executive AI
-11. Permissions
-12. Reports
-13. 3D Workspace
-14. Settings
+10. Permissions
+11. Reports
+12. 3D Workspace
+13. Settings
 
-The role selector applies the original UI policy. Owner/CEO has the full scope. The 3D Workspace and Executive AI are owner/CEO-only.
+The role selector applies the original UI policy. Owner/CEO has the full scope. The 3D Workspace is owner/CEO-only.
 
 Use the moon/sun button to switch dark and light mode. The preference is saved in the current browser.
 

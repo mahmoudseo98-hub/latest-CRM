@@ -45,7 +45,6 @@ The archive also contained an earlier `seo-for-all-nodejs` folder. It was not a 
 | Requests | Cross-department requests, SLA/status, handoff display | Preserved |
 | Discussions | Threads, composer, new discussion workflow | Preserved |
 | Performance | Contribution scores, risks, ranking/evidence views | Preserved |
-| Executive AI | Prompt shell, rendered intelligence, Decision Lab, Fun Pulse | Preserved as the deterministic prototype supplied |
 | Project Tools | Work evidence, screen capture, issue queue, categories | Preserved; browser permission is used for screen capture |
 | Reports | Builder, CSV export, KPIs, preview, Drive mock | Preserved; export uses browser download |
 | 3D Workspace | Three.js room, departments, workstations, coverage and risks | Preserved with local Three.js assets |
@@ -91,5 +90,5 @@ All JSON records are written atomically where replacement is used. Audit and pun
 2. A hosted server cannot access a private office network without VPN/tunneling or an on-premise deployment.
 3. Browser screen capture, voice input and keyboard-wedge capture depend on browser support, HTTPS/localhost security rules, user permission and page focus.
 4. LocalStorage settings are browser/profile specific; server records are shared.
-5. Google Drive and Executive AI remain simulations because the original source did not contain live credentials or APIs.
+5. Google Drive remains a simulation because the original source did not contain live credentials or APIs. The Executive AI module was removed from the product entirely (nav, view, dashboard cards, permissions and engine code).
 6. JSON storage is appropriate for a single Node process. A multi-instance deployment or mission-critical payroll system should use a managed database.

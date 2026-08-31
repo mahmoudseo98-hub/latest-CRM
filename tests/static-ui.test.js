@@ -39,9 +39,9 @@ test('inline classic and module scripts parse successfully', () => {
   }
 });
 
-test('the preserved Company OS contains all 14 modules and required web bridges', () => {
+test('the preserved Company OS contains all 13 modules and required web bridges', () => {
   const html = fs.readFileSync(path.join(publicDir, 'seo-for-all/index.html'), 'utf8');
-  const expected = ['dashboard', 'organization', 'attendance', 'tasks', 'workspaces', 'projecttools', 'requests', 'discussions', 'performance', 'ai', 'governance', 'reports', 'workspace3d', 'settings'];
+  const expected = ['dashboard', 'organization', 'attendance', 'tasks', 'workspaces', 'projecttools', 'requests', 'discussions', 'performance', 'governance', 'reports', 'workspace3d', 'settings'];
   const navModules = [...html.matchAll(/<button[^>]+data-view="([^"]+)"/g)].map((match) => match[1]).filter((id) => expected.includes(id));
   assert.deepEqual(navModules, expected);
   navModules.forEach((id) => assert.match(html, new RegExp(`<section id="${id}" class="view`)));
