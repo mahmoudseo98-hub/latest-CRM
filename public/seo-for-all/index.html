@@ -2360,7 +2360,9 @@ import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
   }
   function toggleFocusMode() {
     if (inFocusMode()) {
-      const r = focusRestore || { l: false, r: false, decor: false };
+      // Always bring all three back: panels have their own hide buttons now, so
+      // restoring a half-hidden layout here would strand whichever was closed.
+      const r = { l: false, r: false, decor: false };
       setPanel('l', r.l, { sync: false });
       setPanel('r', r.r, { sync: false });
       setDecorCollapsed(!!r.decor);
@@ -2384,7 +2386,10 @@ import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
   // buttons alongside the header's Focus button — three separate controls for one
   // job. The single header button (below) now owns showing/hiding all of them, so
   // hide the redundant per-panel ones instead of ripping out their wiring.
-  document.querySelectorAll('[data-ws3d-fold], [data-ws3d-expand]').forEach(btn => { btn.style.display = 'none'; });
+  // The rails live inside a 0-width collapsed panel, so they can never be clicked —
+  // hide them. The per-panel fold buttons stay: each panel can be closed on its own,
+  // and the header button brings them all back.
+  document.querySelectorAll('[data-ws3d-expand]').forEach(btn => { btn.style.display = 'none'; });
   if (focusBtn) focusBtn.addEventListener('click', toggleFocusMode);
 
   document.addEventListener('keydown', e => {
@@ -2402,8 +2407,14 @@ import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
   // The decor column is injected later by seo-decor.js — re-apply once it lands.
   const shellForObserver = shellEl();
   if (shellForObserver && window.MutationObserver) {
-    new MutationObserver(() => { applyGrid(); syncFocusBtn(); })
-      .observe(shellForObserver, { childList: true });
+    new MutationObserver(() => {
+      applyGrid();
+      // seo-decor.js injects its column seconds after load. If the panels were
+      // already opened by then, the decor panel would land collapsed at 0px with
+      // no clickable way back, so bring it in line with the other two.
+      setDecorCollapsed(panelState.l && panelState.r);
+      syncFocusBtn();
+    }).observe(shellForObserver, { childList: true });
   }
 
   (function restorePanels() {
