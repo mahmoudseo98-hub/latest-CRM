@@ -174,9 +174,16 @@ button:not(:disabled):hover{filter:saturate(1.04)}
 @media(max-width:760px){.topbar-brand-mini{display:block}.topbar-search-wrap{flex:1}.topbar{gap:10px}.quick-create-grid,.modal-grid{grid-template-columns:1fr}.modal-grid .span2{grid-column:auto}}
 
 /* ========== 3D WORKSPACE VISUALIZER ========== */
-.ws3d-shell{display:grid;grid-template-columns:240px 1fr 300px;gap:14px;align-items:stretch;margin-bottom:18px}
-.ws3d-shell > aside{background:#fff;border:1px solid var(--line);border-radius:16px;box-shadow:var(--shadow);padding:14px;display:flex;flex-direction:column;gap:14px;overflow:auto;max-height:78vh}
+.ws3d-shell{display:grid;grid-template-columns:var(--ws3d-l-w,240px) 1fr var(--ws3d-r-w,300px);gap:14px;align-items:stretch;margin-bottom:18px;transition:grid-template-columns .18s ease}
+.ws3d-shell > aside{background:#fff;border:1px solid var(--line);border-radius:16px;box-shadow:var(--shadow);padding:14px;display:flex;flex-direction:column;gap:14px;overflow:auto;max-height:78vh;min-width:0;transition:padding .18s ease}
 .ws3d-shell > aside h4{margin:0;font-size:11px;text-transform:uppercase;letter-spacing:.7px;color:var(--muted);font-weight:800}
+.ws3d-aside-fold{align-self:flex-end;flex:0 0 auto;border:1px solid var(--line);background:#fff;border-radius:6px;width:22px;height:22px;line-height:1;cursor:pointer;font-size:12px;color:var(--ink)}
+.ws3d-aside-fold:hover{border-color:var(--primary)}
+.ws3d-aside-vlabel{display:none;writing-mode:vertical-rl;transform:rotate(180deg);font-size:9px;letter-spacing:.16em;color:var(--muted);text-align:center;padding:10px 0;font-weight:800;white-space:nowrap}
+.ws3d-shell > aside.collapsed{align-items:center;padding:10px 6px;gap:8px}
+.ws3d-shell > aside.collapsed .ws3d-aside-body{display:none}
+.ws3d-shell > aside.collapsed .ws3d-aside-vlabel{display:block}
+.theme-dark .ws3d-aside-fold{background:var(--panel);border-color:var(--line);color:var(--ink)}
 .ws3d-canvas-wrap{position:relative;background:linear-gradient(160deg,#10192d 0%,#252d61 55%,#624bb7 100%);border-radius:16px;overflow:hidden;box-shadow:var(--shadow);min-height:560px;height:78vh}
 .ws3d-canvas-wrap canvas{display:block;width:100%;height:100%}
 .ws3d-canvas-wrap.placing canvas{cursor:crosshair}
@@ -292,8 +299,8 @@ button:not(:disabled):hover{filter:saturate(1.04)}
 .ws3d-mgr-form-row input:focus,.ws3d-mgr-form-row select:focus{outline:0;border-color:#5a67f2;box-shadow:0 0 0 3px rgba(90,103,242,.1)}
 .ws3d-mgr-banner{background:linear-gradient(135deg,#fff8e8,#fff4d6);border:1px solid #f0d9ac;border-radius:11px;padding:11px 13px;font-size:11px;color:#78541d;margin-bottom:14px;line-height:1.5}
 .ws3d-mgr-banner b{display:block;margin-bottom:3px}
-@media (max-width:1280px){.ws3d-shell{grid-template-columns:200px 1fr 260px}}
-@media (max-width:1000px){.ws3d-shell{grid-template-columns:1fr}.ws3d-shell > aside{max-height:none}.ws3d-canvas-wrap{height:60vh;min-height:400px}}
+@media (max-width:1280px){.ws3d-shell{grid-template-columns:var(--ws3d-l-w,200px) 1fr var(--ws3d-r-w,260px)}}
+@media (max-width:1000px){.ws3d-shell{grid-template-columns:1fr}.ws3d-shell > aside{max-height:none}.ws3d-shell > aside.collapsed{max-height:52px;align-items:stretch}.ws3d-shell > aside.collapsed .ws3d-aside-vlabel{display:none}.ws3d-canvas-wrap{height:60vh;min-height:400px}}
 
 /* Dark mode theme */
 :root.theme-dark {
@@ -687,7 +694,10 @@ button:not(:disabled):hover{filter:saturate(1.04)}
         </div>
 
         <div class="ws3d-shell">
-          <aside>
+          <aside id="ws3dAsideL" data-ws3d-side="l">
+            <div class="ws3d-aside-vlabel">LAYOUT</div>
+            <button class="ws3d-aside-fold" data-ws3d-fold="l" title="Collapse panel">«</button>
+            <div class="ws3d-aside-body">
             <h4>Layout template</h4>
             <button class="ws3d-template active" data-ws3d-template="departments"><div class="ws3d-t-icon">▦</div><div><b>Department Zones</b><small>Color-coded team clusters</small></div></button>
             <button class="ws3d-template" data-ws3d-template="pods"><div class="ws3d-t-icon">⬡</div><div><b>Project Pods</b><small>Cross-functional seating</small></div></button>
@@ -714,6 +724,7 @@ button:not(:disabled):hover{filter:saturate(1.04)}
 
             <h4>Manage <span style="font-size:9px;color:var(--amber);font-weight:900;text-transform:uppercase;letter-spacing:.3px">CEO only</span></h4>
             <button class="btn btn-primary" style="width:100%;justify-content:center" id="ws3dOpenMgr" onclick="openWs3dManager()">⚙ Edit employees &amp; departments</button>
+            </div>
           </aside>
 
           <div class="ws3d-canvas-wrap" id="ws3dCanvasWrap">
@@ -738,13 +749,17 @@ button:not(:disabled):hover{filter:saturate(1.04)}
             <div id="ws3dLabelLayer" style="position:absolute;inset:0;pointer-events:none;z-index:3"></div>
           </div>
 
-          <aside>
+          <aside id="ws3dAsideR" data-ws3d-side="r">
+            <div class="ws3d-aside-vlabel">ACTIVITY</div>
+            <button class="ws3d-aside-fold" data-ws3d-fold="r" title="Collapse panel">»</button>
+            <div class="ws3d-aside-body">
             <h4>Employee details</h4>
             <div id="ws3dDetailPanel"><div class="ws3d-detail-empty"><i>◈</i>Click any workstation in the scene to inspect the employee's role, productivity, active tasks and backup coverage.</div></div>
 
             <h4>Live computer activity <span class="ws3d-active-dot"></span></h4>
             <div class="ws3d-activity" id="ws3dActivityFeed">
               <div class="ws3d-activity-item"><span class="ws3d-activity-dot" style="background:var(--green)"></span><div><b>Live activity streaming…</b><small>Picks up employees currently at their desks.</small></div><span class="ws3d-activity-time">now</span></div>
+            </div>
             </div>
           </aside>
         </div>
@@ -2379,6 +2394,47 @@ import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
       if (layer === 'activity') applyActivityVisibility();
     });
   });
+
+  // ---------- SIDE PANEL COLLAPSE (Layout & Employee/Activity asides) ----------
+  const ASIDE_LS_KEY = 'seo-ws3d-aside-collapsed';
+  const ASIDE_ICONS = { l: { open: '«', closed: '»' }, r: { open: '»', closed: '«' } };
+  function readAsideCollapsedState() {
+    try { return JSON.parse(localStorage.getItem(ASIDE_LS_KEY)) || {}; } catch (_) { return {}; }
+  }
+  function writeAsideCollapsedState(state) {
+    try { localStorage.setItem(ASIDE_LS_KEY, JSON.stringify(state)); } catch (_) {}
+  }
+  function setAsideCollapsed(side, collapsed) {
+    const aside = document.getElementById(side === 'l' ? 'ws3dAsideL' : 'ws3dAsideR');
+    const shell = document.querySelector('.ws3d-shell');
+    if (!aside || !shell) return;
+    aside.classList.toggle('collapsed', collapsed);
+    const varName = side === 'l' ? '--ws3d-l-w' : '--ws3d-r-w';
+    if (collapsed) shell.style.setProperty(varName, '46px');
+    else shell.style.removeProperty(varName);
+    const fold = aside.querySelector('.ws3d-aside-fold');
+    if (fold) {
+      const icons = ASIDE_ICONS[side];
+      fold.textContent = collapsed ? icons.closed : icons.open;
+      fold.title = collapsed ? 'Expand panel' : 'Collapse panel';
+    }
+    const state = readAsideCollapsedState();
+    state[side] = collapsed;
+    writeAsideCollapsedState(state);
+    setTimeout(handleResize, 220);
+  }
+  document.querySelectorAll('.ws3d-aside-fold').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const side = btn.dataset.ws3dFold;
+      const aside = document.getElementById(side === 'l' ? 'ws3dAsideL' : 'ws3dAsideR');
+      setAsideCollapsed(side, !(aside && aside.classList.contains('collapsed')));
+    });
+  });
+  (function restoreAsideCollapsedState() {
+    const saved = readAsideCollapsedState();
+    if (saved.l) setAsideCollapsed('l', true);
+    if (saved.r) setAsideCollapsed('r', true);
+  })();
 
   function applyActivityVisibility() {
     workstationMeshes.forEach(ws => {
