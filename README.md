@@ -84,4 +84,4 @@ package.json        Start and verification commands
 
 ## Original prototype behavior retained
 
-The original “Executive AI,” Google Drive connection, many dashboard data sets, and approval demonstrations are deterministic prototype interfaces, not connections to live AI, Google Drive, payroll, or HR systems. This conversion preserves that behavior instead of claiming integrations the desktop source did not contain.
+The Google Drive connection, many dashboard data sets, and approval demonstrations are deterministic prototype interfaces, not connections to live AI, Google Drive, payroll, or HR systems. This conversion preserves that behavior instead of claiming integrations the desktop source did not contain.

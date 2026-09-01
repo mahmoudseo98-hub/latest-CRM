@@ -11,6 +11,19 @@ const { DeviceManager } = require('./device-manager');
 const { ensureDir, writeJsonAtomic } = require('./storage');
 
 const VERSION = '1.0.0';
+const LOCKED_PAGE = `<!doctype html><html lang="en"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1"><title>Configuration required</title>
+<style>body{margin:0;min-height:100vh;display:grid;place-items:center;background:#0B1220;color:#F8FAFC;
+font:16px/1.6 system-ui,-apple-system,Segoe UI,sans-serif}main{max-width:34rem;padding:2rem}
+h1{font-size:1.5rem;margin:0 0 .75rem}p{color:#CBD5E1;margin:0 0 1rem}
+code{background:#172033;border:1px solid #2A3648;border-radius:6px;padding:.15rem .4rem;font-size:.9em}
+ul{color:#CBD5E1;padding-left:1.2rem}</style></head><body><main>
+<h1>Configuration required</h1>
+<p>This deployment is running in production without sign-in credentials, so it is not serving the
+application. This protects company, attendance and payroll data from being read by anyone with the URL.</p>
+<p>Set both of these environment variables on the host, then restart the app:</p>
+<ul><li><code>APP_USERNAME</code></li><li><code>APP_PASSWORD</code></li></ul>
+</main></body></html>`;
 const MAX_JSON_BYTES = 12 * 1024 * 1024;
 const MAX_PUSH_BYTES = 2 * 1024 * 1024;
 
@@ -55,6 +68,15 @@ function createApplication(options = {}) {
     try {
       if (pathname === '/api/health' && request.method === 'GET') {
         return sendJson(response, 200, { status: 'ok', version: VERSION, timestamp: new Date().toISOString() });
+      }
+      // Fail closed in production. Without credentials this app served the whole
+      // company — people, attendance, payroll and audit data — to anyone with the
+      // URL. Refuse to serve rather than silently exposing it.
+      if (!pushRoute && !authEnabled && process.env.NODE_ENV === 'production') {
+        response.statusCode = 503;
+        response.setHeader('Content-Type', 'text/html; charset=utf-8');
+        response.setHeader('Cache-Control', 'no-store');
+        return response.end(LOCKED_PAGE);
       }
       if (!pushRoute && authEnabled && !authorized(request, username, password)) {
         response.setHeader('WWW-Authenticate', 'Basic realm="SEO For All OS", charset="UTF-8"');
