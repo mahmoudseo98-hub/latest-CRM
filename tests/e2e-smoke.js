@@ -35,6 +35,18 @@ try {
   });
 
   try {
+    // First run: the app sends everyone to the branded sign-in page, which opens
+    // in "create the owner account" mode until an owner exists.
+    await page.goto(origin, { waitUntil: 'domcontentloaded' });
+    assert.match(page.url(), /\/signin\.html/);
+    await page.locator('#form:not([hidden])').waitFor({ timeout: 8000 });
+    assert.equal((await page.locator('#title').textContent()).trim(), 'Create the owner account');
+    await page.locator('#displayName').fill('Browser Owner');
+    await page.locator('#email').fill('owner@example.com');
+    await page.locator('#password').fill('correct horse battery');
+    await page.locator('#submit').click();
+    await page.waitForURL((url) => !url.pathname.includes('signin'), { timeout: 10000 });
+
     await page.goto(origin, { waitUntil: 'domcontentloaded' });
     assert.match(page.url(), /\/setup\.html$/);
     assert.equal(await page.locator('.st').count(), 7);
@@ -119,7 +131,7 @@ try {
 
     assert.deepEqual(externalRequests, []);
     assert.deepEqual(pageErrors, []);
-    console.log('E2E PASS: setup, launcher, all 13 modules, tasks, 3D/decor, RBAC, theme persistence, devices, SSE punches, and name enrollment.');
+    console.log('E2E PASS: sign-in, setup, launcher, all 13 modules, tasks, 3D/decor, RBAC, theme persistence, devices, SSE punches, and name enrollment.');
   } finally {
     await context.close();
     await browser.close();

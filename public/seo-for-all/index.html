@@ -410,6 +410,21 @@ button:not(:disabled):hover{filter:saturate(1.04)}
   font-size:14px;line-height:1;padding:4px;border-radius:6px;min-width:28px;min-height:28px}
 .demo-banner-x:hover{background:rgba(0,0,0,.06);color:var(--ink)}
 .demo-banner[hidden]{display:none}
+
+/* Account menu: identity and the way out. */
+.account-menu{position:relative}
+button.avatar{border:0;cursor:pointer;font:inherit}
+.account-panel{position:absolute;right:0;top:calc(100% + 8px);z-index:60;min-width:230px;
+  background:var(--panel);border:1px solid var(--line);border-radius:12px;box-shadow:var(--shadow);padding:12px}
+.account-panel[hidden]{display:none}
+.account-id{padding:2px 2px 10px;border-bottom:1px solid var(--line);margin-bottom:8px}
+.account-id b{display:block;font-size:13.5px;color:var(--ink)}
+.account-id small{display:block;font-size:12px;color:var(--muted);word-break:break-all;margin-top:2px}
+.account-role{display:inline-block;margin-top:6px;font-size:11px;font-weight:700;letter-spacing:.04em;
+  text-transform:uppercase;color:var(--primary);border:1px solid var(--primary);border-radius:6px;padding:2px 6px}
+.account-action{width:100%;min-height:40px;border:1px solid var(--line);background:transparent;border-radius:9px;
+  color:var(--ink);font-size:13.5px;font-weight:600;cursor:pointer}
+.account-action:hover{border-color:var(--red);color:var(--red)}
 </style>
 <script type="importmap">
 {
@@ -464,7 +479,18 @@ button:not(:disabled):hover{filter:saturate(1.04)}
           <option value="lead">Team Lead</option>
           <option value="employee">Employee</option>
         </select>
-        <div class="avatar">OA</div>
+        <div class="account-menu">
+          <button type="button" class="avatar" id="accountButton" aria-haspopup="true" aria-expanded="false"
+                  aria-controls="accountPanel" title="Account">OA</button>
+          <div class="account-panel" id="accountPanel" hidden>
+            <div class="account-id">
+              <b id="accountName">Signed in</b>
+              <small id="accountEmail"></small>
+              <span class="account-role" id="accountRole"></span>
+            </div>
+            <button type="button" class="account-action" onclick="signOut()">Sign out</button>
+          </div>
+        </div>
       </div>
     </header>
 
@@ -1480,6 +1506,42 @@ function dismissDemoBanner(){
  let hidden=null;
  try{hidden=sessionStorage.getItem('seo-demo-banner-hidden')}catch(_){}
  if(hidden==='1'){const el=document.getElementById('demoBanner');if(el)el.hidden=true}
+})();
+
+/* ---- signed-in identity + sign out ---- */
+function toggleAccountPanel(force){
+ const panel=document.getElementById('accountPanel'),btn=document.getElementById('accountButton');
+ if(!panel||!btn)return;
+ const open=force!==undefined?force:panel.hidden;
+ panel.hidden=!open;
+ btn.setAttribute('aria-expanded',String(open));
+}
+function signOut(){
+ fetch('/api/auth/logout',{method:'POST',credentials:'same-origin',
+   headers:{'x-seo-requested-with':'web'}})
+  .then(()=>{location.href='/signin.html'})
+  .catch(()=>{showToast('Could not sign out. Check your connection.')});
+}
+(function loadAccount(){
+ const btn=document.getElementById('accountButton');
+ if(btn){
+  btn.addEventListener('click',e=>{e.stopPropagation();toggleAccountPanel()});
+  document.addEventListener('click',()=>toggleAccountPanel(false));
+  document.getElementById('accountPanel')?.addEventListener('click',e=>e.stopPropagation());
+  document.addEventListener('keydown',e=>{if(e.key==='Escape')toggleAccountPanel(false)});
+ }
+ fetch('/api/auth/me',{credentials:'same-origin'})
+  .then(r=>r.ok?r.json():null)
+  .then(data=>{
+   if(!data||!data.user)return;
+   const u=data.user;
+   const initials=(u.displayName||u.email||'?').split(/\s+/).map(w=>w[0]).slice(0,2).join('').toUpperCase();
+   if(btn){btn.textContent=initials;btn.title=u.displayName+' · '+u.email}
+   const nameEl=document.getElementById('accountName');if(nameEl)nameEl.textContent=u.displayName||'Signed in';
+   const mailEl=document.getElementById('accountEmail');if(mailEl)mailEl.textContent=u.email||'';
+   const roleEl=document.getElementById('accountRole');if(roleEl)roleEl.textContent=u.baseRole||'';
+  })
+  .catch(()=>{});
 })();
 
 loadFunScheduleUI();
