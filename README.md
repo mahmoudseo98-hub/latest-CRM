@@ -4,6 +4,32 @@ This folder is the complete web conversion of the supplied Electron desktop appl
 
 The Electron-only layer was replaced with a same-origin Node.js API. The project has no runtime npm dependencies, no CDN assets, and no front-end build step.
 
+
+## Accounts and sign-in
+
+The application is reached through a branded sign-in page at `/signin.html`, not the
+browser's own credential prompt.
+
+- **First run.** With no account yet, that page opens in "create the owner account"
+  mode. On a public deployment this window is guarded by `APP_USERNAME` /
+  `APP_PASSWORD`, so a stranger cannot claim the owner account before you do. The
+  first account created is always Owner / CEO.
+- **After that.** Individual accounts and session cookies are authoritative, and the
+  shared deployment credential stops opening the application. Public sign-up is
+  closed permanently — further accounts are created by an administrator.
+- **Sessions.** Opaque random tokens, stored server-side as SHA-256 hashes, in an
+  `HttpOnly`, `SameSite=Lax` cookie (`Secure` in production). They expire after 12
+  hours idle and 7 days absolute, or 30 days with "keep me signed in". Changing a
+  password signs every other session out.
+- **Passwords.** Hashed with `scrypt` and a unique per-account salt, compared in
+  constant time. Never stored, logged, returned by the API, or included in a backup.
+- **Mutations** carry a double-submit CSRF token bound to the session, and repeated
+  failed sign-ins are rate limited per account and per IP.
+- **Password recovery** is not automated because no mail service is configured. The
+  sign-in page says so plainly and points to the administrator rather than pretending
+  an email was sent.
+
+
 ## Run locally
 
 Requirements: Node.js 24.
@@ -23,8 +49,8 @@ Set these environment variables in your hosting dashboard:
 | Variable | Required | Recommended value |
 |---|---:|---|
 | `NODE_ENV` | Yes | `production` |
-| `APP_USERNAME` | Yes for public hosting | A private administrator username |
-| `APP_PASSWORD` | Yes for public hosting | A long unique password |
+| `APP_USERNAME` | Yes for first run on public hosting | Guards the one-time owner-account setup. Once an owner account exists, individual sign-in replaces it and this no longer opens the app. |
+| `APP_PASSWORD` | Yes for first run on public hosting | A long unique password for that one-time setup window. |
 | `DATA_DIR` | Recommended | A writable persistent directory; default `./data` |
 | `HOST` | No | `0.0.0.0` |
 | `PORT` | No | The host-provided port; fallback is `3000` |

@@ -9,6 +9,16 @@
   let wedgeBuffer = '';
   let wedgeTimer = null;
 
+  function readCookie(name) {
+    const parts = String(document.cookie || '').split(';');
+    for (const part of parts) {
+      const idx = part.indexOf('=');
+      if (idx < 0) continue;
+      if (part.slice(0, idx).trim() === name) return decodeURIComponent(part.slice(idx + 1).trim());
+    }
+    return '';
+  }
+
   async function request(path, options) {
     const init = Object.assign({ credentials: 'same-origin' }, options || {});
     init.headers = Object.assign({}, init.headers || {});
@@ -16,7 +26,13 @@
       init.headers['Content-Type'] = 'application/json';
       init.body = JSON.stringify(init.body);
     }
-    if (init.method && !['GET', 'HEAD'].includes(init.method.toUpperCase())) init.headers['X-SEO-Requested-With'] = 'web';
+    if (init.method && !['GET', 'HEAD'].includes(init.method.toUpperCase())) {
+      init.headers['X-SEO-Requested-With'] = 'web';
+      // Double-submit CSRF: echo the readable cookie back as a header. A cross-site
+      // form can send the cookie but cannot read it to set this.
+      const csrf = readCookie('seo_csrf');
+      if (csrf) init.headers['X-CSRF-Token'] = csrf;
+    }
     const response = await fetch(path, init);
     const contentType = response.headers.get('content-type') || '';
     const value = contentType.includes('application/json') ? await response.json() : await response.text();

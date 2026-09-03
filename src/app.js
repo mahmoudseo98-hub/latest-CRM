@@ -8,6 +8,8 @@ const { CompanyStore, validLogoName } = require('./company-store');
 const { PeopleRegistry } = require('./people-registry');
 const { ProjectStore } = require('./project-store');
 const { DeviceManager } = require('./device-manager');
+const { UserStore } = require('./user-store');
+const { SessionStore } = require('./session-store');
 const { ensureDir, writeJsonAtomic } = require('./storage');
 
 const VERSION = '1.0.0';
@@ -41,6 +43,9 @@ function createApplication(options = {}) {
   const people = new PeopleRegistry(dataDir);
   const projects = new ProjectStore(dataDir);
   const devices = new DeviceManager({ dataDir, audit, people, company, allowLan }).init();
+  const users = new UserStore(dataDir);
+  const sessions = new SessionStore(dataDir);
+  const loginAttempts = new Map();
   const eventClients = new Set();
 
   const broadcast = (event) => {
@@ -57,7 +62,7 @@ function createApplication(options = {}) {
   }, 20000);
   heartbeat.unref();
 
-  const context = { projectRoot, publicDir, dataDir, audit, company, people, projects, devices, authEnabled, allowLan, eventClients };
+  const context = { projectRoot, publicDir, dataDir, audit, company, people, projects, devices, users, sessions, loginAttempts, authEnabled, allowLan, eventClients };
 
   async function handler(request, response) {
     setSecurityHeaders(response);
@@ -72,19 +77,65 @@ function createApplication(options = {}) {
       // Fail closed in production. Without credentials this app served the whole
       // company — people, attendance, payroll and audit data — to anyone with the
       // URL. Refuse to serve rather than silently exposing it.
-      if (!pushRoute && !authEnabled && process.env.NODE_ENV === 'production') {
-        response.statusCode = 503;
-        response.setHeader('Content-Type', 'text/html; charset=utf-8');
-        response.setHeader('Cache-Control', 'no-store');
-        return response.end(LOCKED_PAGE);
+      if (pushRoute) { /* device push endpoints authenticate with their own token */ }
+      else {
+        // Public: the sign-in page itself and the endpoints it needs, plus the
+        // fonts/stylesheet it loads.
+        const publicPath = pathname === '/signin.html'
+          || pathname.startsWith('/api/auth/')
+          || pathname.startsWith('/vendor/fonts');
+
+        if (!users.isBootstrapped()) {
+          // No owner account exists yet. The shared APP_USERNAME/APP_PASSWORD guards
+          // this first-run window only, so a stranger cannot claim the owner account
+          // on a live URL. Once an owner is created it stops gating anything.
+          if (!authEnabled && process.env.NODE_ENV === 'production') {
+            response.statusCode = 503;
+            response.setHeader('Content-Type', 'text/html; charset=utf-8');
+            response.setHeader('Cache-Control', 'no-store');
+            return response.end(LOCKED_PAGE);
+          }
+          if (authEnabled && !authorized(request, username, password)) {
+            response.setHeader('WWW-Authenticate', 'Basic realm="SEO For All OS first-run setup", charset="UTF-8"');
+            return sendJson(response, 401, { error: 'Authentication required.' });
+          }
+          if (!publicPath && !pathname.startsWith('/api/')) {
+            return redirect(response, '/signin.html');
+          }
+        } else if (!publicPath) {
+          // An owner account exists, so individual sessions are authoritative and
+          // the shared credential no longer opens anything.
+          const session = sessions.touch(readCookie(request, 'seo_session'));
+          if (!session) {
+            if (pathname.startsWith('/api/')) return sendJson(response, 401, { error: 'Sign in to continue.' });
+            return redirect(response, '/signin.html?next=' + encodeURIComponent(url.pathname + url.search));
+          }
+          const account = users.findById(session.userId);
+          if (!account || account.status !== 'active') {
+            sessions.destroyAllForUser(session.userId);
+            clearSessionCookie(response);
+            if (pathname.startsWith('/api/')) return sendJson(response, 401, { error: 'Sign in to continue.' });
+            return redirect(response, '/signin.html');
+          }
+          request.session = session;
+          request.user = account;
+          // Double-submit CSRF: the cookie is readable by our own scripts, an
+          // attacker's cross-site form cannot set the matching header.
+          if (isMutation(request.method) && pathname.startsWith('/api/')) {
+            const sent = request.headers['x-csrf-token'];
+            if (!sent || String(sent) !== session.csrf) {
+              return sendJson(response, 403, { error: 'Invalid or missing CSRF token. Reload the page and try again.' });
+            }
+          }
+        }
+
+        if (isMutation(request.method) && pathname.startsWith('/api/') && !pathname.startsWith('/api/auth/')
+            && request.headers['x-seo-requested-with'] !== 'web') {
+          return sendJson(response, 403, { error: 'Invalid same-origin request.' });
+        }
       }
-      if (!pushRoute && authEnabled && !authorized(request, username, password)) {
-        response.setHeader('WWW-Authenticate', 'Basic realm="SEO For All OS", charset="UTF-8"');
-        return sendJson(response, 401, { error: 'Authentication required.' });
-      }
-      if (!pushRoute && isMutation(request.method) && pathname.startsWith('/api/') && request.headers['x-seo-requested-with'] !== 'web') {
-        return sendJson(response, 403, { error: 'Invalid same-origin request.' });
-      }
+
+      if (pathname.startsWith('/api/auth/')) return await handleAuth(request, response, url, context, { username, password, authEnabled });
 
       if (pushRoute) return await handlePush(request, response, url, context);
       if (pathname === '/api/events' && request.method === 'GET') return openEventStream(request, response, eventClients);
@@ -245,6 +296,172 @@ async function handlePush(request, response, url, context) {
   response.statusCode = 200;
   response.setHeader('Content-Type', 'text/plain; charset=utf-8');
   response.end(result.accepted ? `OK:${result.accepted}` : 'OK');
+}
+
+/* ---------------- authentication ---------------- */
+
+const LOGIN_WINDOW_MS = 15 * 60 * 1000;
+// Per account+IP, so one person mistyping their own password cannot lock out
+// colleagues sharing an office IP. The wider per-IP cap still stops someone
+// spraying many accounts from one place.
+const LOGIN_MAX_ATTEMPTS = 10;
+const LOGIN_MAX_PER_IP = 50;
+
+function clientIp(request) {
+  const fwd = String(request.headers['x-forwarded-for'] || '').split(',')[0].trim();
+  return fwd || (request.socket && request.socket.remoteAddress) || 'unknown';
+}
+
+function rateLimited(store, key, max) {
+  const now = Date.now();
+  // Opportunistic sweep so the map cannot grow without bound.
+  if (store.size > 5000) {
+    for (const [k, v] of store) if (now - v.first > LOGIN_WINDOW_MS) store.delete(k);
+  }
+  const entry = store.get(key);
+  if (!entry || now - entry.first > LOGIN_WINDOW_MS) {
+    store.set(key, { first: now, count: 1 });
+    return false;
+  }
+  entry.count += 1;
+  return entry.count > max;
+}
+
+function clearRateLimit(store, key) { store.delete(key); }
+
+function readCookie(request, name) {
+  const header = request.headers.cookie;
+  if (!header) return '';
+  for (const part of String(header).split(';')) {
+    const idx = part.indexOf('=');
+    if (idx < 0) continue;
+    if (part.slice(0, idx).trim() === name) return decodeURIComponent(part.slice(idx + 1).trim());
+  }
+  return '';
+}
+
+function setSessionCookies(response, token, csrf, maxAgeSeconds) {
+  const secure = process.env.NODE_ENV === 'production' ? '; Secure' : '';
+  const age = maxAgeSeconds ? `; Max-Age=${Math.floor(maxAgeSeconds)}` : '';
+  response.setHeader('Set-Cookie', [
+    // The session token is HttpOnly so page scripts (and any XSS) cannot read it.
+    `seo_session=${encodeURIComponent(token)}; Path=/; HttpOnly; SameSite=Lax${secure}${age}`,
+    // The CSRF token is deliberately readable so our own fetch calls can echo it.
+    `seo_csrf=${encodeURIComponent(csrf)}; Path=/; SameSite=Lax${secure}${age}`,
+  ]);
+}
+
+function clearSessionCookie(response) {
+  const secure = process.env.NODE_ENV === 'production' ? '; Secure' : '';
+  response.setHeader('Set-Cookie', [
+    `seo_session=; Path=/; HttpOnly; SameSite=Lax${secure}; Max-Age=0`,
+    `seo_csrf=; Path=/; SameSite=Lax${secure}; Max-Age=0`,
+  ]);
+}
+
+function redirect(response, location) {
+  response.statusCode = 302;
+  response.setHeader('Location', location);
+  response.setHeader('Cache-Control', 'no-store');
+  response.end();
+}
+
+async function handleAuth(request, response, url, context, basic) {
+  const { pathname } = url;
+  const { users, sessions, audit, loginAttempts } = context;
+  const ip = clientIp(request);
+
+  if (pathname === '/api/auth/state' && request.method === 'GET') {
+    return sendJson(response, 200, { bootstrapped: users.isBootstrapped() });
+  }
+
+  if (pathname === '/api/auth/me' && request.method === 'GET') {
+    const session = sessions.touch(readCookie(request, 'seo_session'));
+    const account = session && users.findById(session.userId);
+    if (!account || account.status !== 'active') return sendJson(response, 401, { error: 'Not signed in.' });
+    return sendJson(response, 200, { user: users.publicView(account), csrfToken: session.csrf });
+  }
+
+  if (pathname === '/api/auth/logout' && request.method === 'POST') {
+    const token = readCookie(request, 'seo_session');
+    const session = token && sessions.touch(token);
+    if (session) {
+      const account = users.findById(session.userId);
+      audit.log('auth.logout', account ? account.email : 'unknown', { ip });
+      sessions.destroy(token);
+    }
+    clearSessionCookie(response);
+    return sendJson(response, 200, { ok: true });
+  }
+
+  if (pathname === '/api/auth/bootstrap' && request.method === 'POST') {
+    if (users.isBootstrapped()) {
+      // Public sign-up is not a feature: once an owner exists this is closed for good.
+      return sendJson(response, 403, { error: 'This workspace already has an owner account. Sign in instead.' });
+    }
+    if (basic.authEnabled && !authorized(request, basic.username, basic.password)) {
+      return sendJson(response, 401, { error: 'First-run setup requires the deployment credentials.' });
+    }
+    const body = await readJsonBody(request);
+    const account = users.create({
+      email: body.email,
+      displayName: body.displayName,
+      password: body.password,
+      baseRole: 'owner',
+    });
+    const created = sessions.create(account.id, { userAgent: request.headers['user-agent'] });
+    users.markLogin(account.id);
+    audit.log('auth.bootstrap', account.email, { ip, role: 'owner' });
+    setSessionCookies(response, created.token, created.csrf);
+    return sendJson(response, 201, { user: account, csrfToken: created.csrf });
+  }
+
+  if (pathname === '/api/auth/login' && request.method === 'POST') {
+    const body = await readJsonBody(request);
+    const accountKey = `${ip}|${String(body.email || '').toLowerCase().slice(0, 190)}`;
+    if (rateLimited(loginAttempts, accountKey, LOGIN_MAX_ATTEMPTS) || rateLimited(loginAttempts, ip, LOGIN_MAX_PER_IP)) {
+      audit.log('auth.rate-limited', ip, {});
+      return sendJson(response, 429, { error: 'Too many sign-in attempts. Wait a few minutes and try again.' });
+    }
+    const result = users.authenticate(body.email, body.password);
+    if (!result.ok) {
+      audit.log('auth.login-failed', String(body.email || '').slice(0, 190), { ip, reason: result.reason });
+      // Same message either way: never confirm whether an email is registered.
+      const message = result.reason === 'suspended'
+        ? 'This account is not active. Contact your administrator.'
+        : 'Email or password is incorrect.';
+      return sendJson(response, 401, { error: message });
+    }
+    clearRateLimit(loginAttempts, accountKey);
+    clearRateLimit(loginAttempts, ip);
+    const created = sessions.create(result.user.id, {
+      remember: !!body.remember,
+      userAgent: request.headers['user-agent'],
+    });
+    users.markLogin(result.user.id);
+    audit.log('auth.login', result.user.email, { ip });
+    const maxAge = body.remember ? 30 * 24 * 60 * 60 : undefined;
+    setSessionCookies(response, created.token, created.csrf, maxAge);
+    return sendJson(response, 200, { user: users.publicView(result.user), csrfToken: created.csrf });
+  }
+
+  if (pathname === '/api/auth/password' && request.method === 'POST') {
+    const session = sessions.touch(readCookie(request, 'seo_session'));
+    const account = session && users.findById(session.userId);
+    if (!account) return sendJson(response, 401, { error: 'Sign in to continue.' });
+    const body = await readJsonBody(request);
+    const check = users.authenticate(account.email, body.currentPassword);
+    if (!check.ok) return sendJson(response, 401, { error: 'Current password is incorrect.' });
+    users.setPassword(account.id, body.newPassword);
+    // Changing a password signs every other session out.
+    sessions.destroyAllForUser(account.id);
+    const created = sessions.create(account.id, { userAgent: request.headers['user-agent'] });
+    audit.log('auth.password-changed', account.email, { ip });
+    setSessionCookies(response, created.token, created.csrf);
+    return sendJson(response, 200, { ok: true, csrfToken: created.csrf });
+  }
+
+  return sendJson(response, 404, { error: 'Not found.' });
 }
 
 function isPushRoute(pathname) {
