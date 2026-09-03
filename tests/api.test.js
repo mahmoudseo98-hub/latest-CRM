@@ -53,12 +53,11 @@ function cookiesFrom(response) {
 }
 
 // Creates the first (owner) account and returns what is needed to act as them.
-async function signInAsOwner(origin, headers = {}) {
-  const created = await api(origin, '/api/auth/bootstrap', {
-    method: 'POST',
-    headers,
-    body: { email: 'owner@example.com', displayName: 'Test Owner', password: 'correct horse battery' },
-  });
+// The setup key travels in the request body, never as an HTTP challenge.
+async function signInAsOwner(origin, setupKey) {
+  const body = { email: 'owner@example.com', displayName: 'Test Owner', password: 'correct horse battery' };
+  if (setupKey) body.setupKey = setupKey;
+  const created = await api(origin, '/api/auth/bootstrap', { method: 'POST', body });
   assert.equal(created.response.status, 201);
   return { cookie: cookiesFrom(created.response), csrf: created.value.csrfToken, user: created.value.user };
 }
@@ -75,7 +74,7 @@ test('complete server workflow persists company, projects, people, devices, punc
     // owner account" mode) rather than straight into setup.
     const anonymous = await api(app.origin, '/');
     assert.equal(anonymous.response.status, 302);
-    assert.equal(anonymous.response.headers.get('location'), '/signin.html');
+    assert.equal(anonymous.response.headers.get('location'), '/signin.html?next=%2F');
 
     const session = await signInAsOwner(app.origin);
     assert.equal(session.user.baseRole, 'owner');
@@ -157,40 +156,72 @@ test('complete server workflow persists company, projects, people, devices, punc
   }
 });
 
-test('first-run setup is guarded by the deployment credentials and creates exactly one owner', async () => {
-  const app = await startApplication({ username: 'admin', password: 'correct horse battery staple' });
-  const auth = `Basic ${Buffer.from('admin:correct horse battery staple').toString('base64')}`;
+test('first-run setup is guarded by the deployment key, asked for as a form field, and creates exactly one owner', async () => {
+  const key = 'correct horse battery staple';
+  const app = await startApplication({ username: 'admin', password: key });
+  const auth = `Basic ${Buffer.from(`admin:${key}`).toString('base64')}`;
   try {
-    // Before an owner exists the shared credential guards the first-run window, so
-    // a stranger cannot claim the owner account on a public URL.
-    const noAuth = await api(app.origin, '/signin.html');
-    assert.equal(noAuth.response.status, 401);
-
-    const signinPage = await api(app.origin, '/signin.html', { headers: { Authorization: auth } });
+    // The sign-in page is reachable with no credentials at all. That is the whole
+    // point: a browser only draws its own password dialog in reply to an HTTP
+    // challenge, so the server must never issue one.
+    const signinPage = await api(app.origin, '/signin.html');
     assert.equal(signinPage.response.status, 200);
+    assert.equal(signinPage.response.headers.get('www-authenticate'), null);
 
-    const state = await api(app.origin, '/api/auth/state', { headers: { Authorization: auth } });
+    // Nor on a guarded page, or on the API the page calls.
+    for (const route of ['/', '/launcher.html', '/seo-for-all/index.html', '/api/auth/state', '/api/company']) {
+      const hit = await api(app.origin, route);
+      assert.equal(hit.response.headers.get('www-authenticate'), null, `WWW-Authenticate sent for ${route}`);
+    }
+
+    const state = await api(app.origin, '/api/auth/state');
     assert.equal(state.value.bootstrapped, false);
+    assert.equal(state.value.setupKeyRequired, true);
 
-    const weak = await api(app.origin, '/api/auth/bootstrap', {
+    // Without the key — or with the wrong one — a stranger cannot claim the owner
+    // account, even though the page itself is public.
+    const noKey = await api(app.origin, '/api/auth/bootstrap', {
       method: 'POST',
-      headers: { Authorization: auth },
-      body: { email: 'owner@example.com', displayName: 'Owner', password: 'short' },
+      body: { email: 'intruder@example.com', displayName: 'Intruder', password: 'another long password' },
     });
-    assert.equal(weak.response.status, 400);
+    assert.equal(noKey.response.status, 403);
 
-    const session = await signInAsOwner(app.origin, { Authorization: auth });
-    assert.equal(session.user.baseRole, 'owner');
+    const wrongKey = await api(app.origin, '/api/auth/bootstrap', {
+      method: 'POST',
+      body: { email: 'intruder@example.com', displayName: 'Intruder', password: 'another long password', setupKey: 'nope' },
+    });
+    assert.equal(wrongKey.response.status, 403);
 
-    // Sign-up closes permanently once an owner exists.
-    const second = await api(app.origin, '/api/auth/bootstrap', {
+    // An Authorization header is not a way in either — the key is a body field.
+    const viaHeader = await api(app.origin, '/api/auth/bootstrap', {
       method: 'POST',
       headers: { Authorization: auth },
       body: { email: 'intruder@example.com', displayName: 'Intruder', password: 'another long password' },
     });
+    assert.equal(viaHeader.response.status, 403);
+
+    const weak = await api(app.origin, '/api/auth/bootstrap', {
+      method: 'POST',
+      body: { email: 'owner@example.com', displayName: 'Owner', password: 'short', setupKey: key },
+    });
+    assert.equal(weak.response.status, 400);
+
+    const session = await signInAsOwner(app.origin, key);
+    assert.equal(session.user.baseRole, 'owner');
+
+    // Sign-up closes permanently once an owner exists, key or no key.
+    const second = await api(app.origin, '/api/auth/bootstrap', {
+      method: 'POST',
+      body: { email: 'intruder@example.com', displayName: 'Intruder', password: 'another long password', setupKey: key },
+    });
     assert.equal(second.response.status, 403);
 
-    // And the shared credential stops opening the application.
+    // The state endpoint stops advertising the setup field.
+    const after = await api(app.origin, '/api/auth/state');
+    assert.equal(after.value.bootstrapped, true);
+    assert.equal(after.value.setupKeyRequired, false);
+
+    // And the deployment credential does not open the application.
     const staleBasic = await api(app.origin, '/launcher.html', { headers: { Authorization: auth } });
     assert.equal(staleBasic.response.status, 302);
     assert.match(staleBasic.response.headers.get('location') || '', /signin\.html/);

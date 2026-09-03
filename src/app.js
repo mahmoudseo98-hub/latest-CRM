@@ -86,21 +86,21 @@ function createApplication(options = {}) {
           || pathname.startsWith('/vendor/fonts');
 
         if (!users.isBootstrapped()) {
-          // No owner account exists yet. The shared APP_USERNAME/APP_PASSWORD guards
-          // this first-run window only, so a stranger cannot claim the owner account
-          // on a live URL. Once an owner is created it stops gating anything.
+          // No owner account exists yet. Everyone lands on the sign-in page, which
+          // opens in "create the owner account" mode. Claiming that account requires
+          // APP_PASSWORD, but it is asked for as a field on our own page — never as
+          // an HTTP challenge, which is what makes the browser draw its own dialog.
           if (!authEnabled && process.env.NODE_ENV === 'production') {
             response.statusCode = 503;
             response.setHeader('Content-Type', 'text/html; charset=utf-8');
             response.setHeader('Cache-Control', 'no-store');
             return response.end(LOCKED_PAGE);
           }
-          if (authEnabled && !authorized(request, username, password)) {
-            response.setHeader('WWW-Authenticate', 'Basic realm="SEO For All OS first-run setup", charset="UTF-8"');
-            return sendJson(response, 401, { error: 'Authentication required.' });
-          }
           if (!publicPath && !pathname.startsWith('/api/')) {
-            return redirect(response, '/signin.html');
+            return redirect(response, '/signin.html?next=' + encodeURIComponent(url.pathname + url.search));
+          }
+          if (!publicPath && pathname.startsWith('/api/')) {
+            return sendJson(response, 401, { error: 'Create the owner account first.' });
           }
         } else if (!publicPath) {
           // An owner account exists, so individual sessions are authoritative and
@@ -372,7 +372,11 @@ async function handleAuth(request, response, url, context, basic) {
   const ip = clientIp(request);
 
   if (pathname === '/api/auth/state' && request.method === 'GET') {
-    return sendJson(response, 200, { bootstrapped: users.isBootstrapped() });
+    return sendJson(response, 200, {
+      bootstrapped: users.isBootstrapped(),
+      // Whether the first-run form must also ask for the deployment setup key.
+      setupKeyRequired: !users.isBootstrapped() && !!basic.authEnabled,
+    });
   }
 
   if (pathname === '/api/auth/me' && request.method === 'GET') {
@@ -399,10 +403,17 @@ async function handleAuth(request, response, url, context, basic) {
       // Public sign-up is not a feature: once an owner exists this is closed for good.
       return sendJson(response, 403, { error: 'This workspace already has an owner account. Sign in instead.' });
     }
-    if (basic.authEnabled && !authorized(request, basic.username, basic.password)) {
-      return sendJson(response, 401, { error: 'First-run setup requires the deployment credentials.' });
-    }
     const body = await readJsonBody(request);
+    if (basic.authEnabled) {
+      // Constant-time compare so the key cannot be guessed a character at a time.
+      const supplied = Buffer.from(String(body.setupKey || ''));
+      const expected = Buffer.from(String(basic.password));
+      const ok = supplied.length === expected.length && crypto.timingSafeEqual(supplied, expected);
+      if (!ok) {
+        audit.log('auth.bootstrap-rejected', ip, {});
+        return sendJson(response, 403, { error: 'That setup key is not correct.' });
+      }
+    }
     const account = users.create({
       email: body.email,
       displayName: body.displayName,

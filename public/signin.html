@@ -51,6 +51,7 @@ input[aria-invalid=true]{border-color:var(--danger)}
 }
 .pw-toggle:hover{color:var(--ink);background:rgba(255,255,255,.06)}
 .hint{font-size:12.5px;color:var(--muted);margin:6px 0 0}
+.hint code{background:var(--raised);border:1px solid var(--line);border-radius:5px;padding:.1em .35em;font-size:.92em}
 .row{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:18px}
 .row[hidden]{display:none} /* an author display rule beats the UA [hidden] rule */
 .check{display:flex;align-items:center;gap:8px;font-size:13.5px;color:var(--ink-2);cursor:pointer}
@@ -93,6 +94,13 @@ button.primary:disabled{opacity:.6;cursor:progress}
     <p class="sub" id="subtitle">Use your work email and password.</p>
 
     <div class="alert" id="alert" role="alert" hidden></div>
+
+    <div class="field" id="setupKeyField" hidden>
+      <label for="setupKey">Setup key</label>
+      <input id="setupKey" name="setupKey" type="password" autocomplete="off" spellcheck="false">
+      <p class="hint">The deployment password set on the server (<code>APP_PASSWORD</code>). This is asked
+         once, so only you can claim the owner account.</p>
+    </div>
 
     <div class="field" id="nameField" hidden>
       <label for="displayName">Full name</label>
@@ -146,6 +154,9 @@ button.primary:disabled{opacity:.6;cursor:progress}
   var caps = document.getElementById('caps');
   var foot = document.getElementById('foot');
   var rememberRow = document.getElementById('rememberRow');
+  var setupKeyField = document.getElementById('setupKeyField');
+  var setupKey = document.getElementById('setupKey');
+  var setupKeyNeeded = false;
   var mode = 'signin';
 
   function show(message, kind) {
@@ -170,6 +181,7 @@ button.primary:disabled{opacity:.6;cursor:progress}
       ? 'This is the first account on this workspace, so it becomes the Owner / CEO.'
       : 'Use your work email and password.';
     nameField.hidden = !registering;
+    setupKeyField.hidden = !(registering && setupKeyNeeded);
     pwHint.hidden = !registering;
     rememberRow.hidden = registering;
     submit.textContent = registering ? 'Create account & sign in' : 'Sign in';
@@ -197,7 +209,10 @@ button.primary:disabled{opacity:.6;cursor:progress}
     password.setAttribute('aria-invalid', 'false');
 
     var body = { email: email.value.trim(), password: password.value };
-    if (mode === 'register') body.displayName = displayName.value.trim();
+    if (mode === 'register') {
+      body.displayName = displayName.value.trim();
+      if (setupKeyNeeded) body.setupKey = setupKey.value;
+    }
     else body.remember = document.getElementById('remember').checked;
 
     var endpoint = mode === 'register' ? '/api/auth/bootstrap' : '/api/auth/login';
@@ -217,6 +232,7 @@ button.primary:disabled{opacity:.6;cursor:progress}
       submit.textContent = mode === 'register' ? 'Create account & sign in' : 'Sign in';
       show(r.data && r.data.error ? r.data.error : 'Something went wrong. Please try again.');
       if (r.status === 401) { password.value = ''; password.setAttribute('aria-invalid', 'true'); password.focus(); }
+      if (r.status === 403 && mode === 'register') { setupKey.setAttribute('aria-invalid', 'true'); setupKey.focus(); }
     }).catch(function () {
       submit.disabled = false;
       submit.textContent = mode === 'register' ? 'Create account & sign in' : 'Sign in';
@@ -227,10 +243,12 @@ button.primary:disabled{opacity:.6;cursor:progress}
   fetch('/api/auth/state', { credentials: 'same-origin' })
     .then(function (r) { return r.json(); })
     .then(function (state) {
+      setupKeyNeeded = !!(state && state.setupKeyRequired);
       setMode(state && state.bootstrapped ? 'signin' : 'register');
       boot.hidden = true;
       form.hidden = false;
-      (state && state.bootstrapped ? email : displayName).focus();
+      if (state && state.bootstrapped) email.focus();
+      else (setupKeyNeeded ? setupKey : displayName).focus();
     })
     .catch(function () {
       boot.textContent = 'Could not reach the server. Refresh to try again.';
