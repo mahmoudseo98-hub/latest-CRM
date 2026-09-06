@@ -254,6 +254,90 @@ test('a setup key stored with surrounding whitespace still opens first-run setup
   }
 });
 
+// Signs in as a freshly created account with the given base role. The account is
+// made through the store directly because there is no user-administration API yet.
+async function signInAs(app, baseRole, index) {
+  const email = `${baseRole}${index || ''}@example.com`;
+  const password = 'correct horse battery';
+  app.application.context.users.create({ email, displayName: `${baseRole} person`, password, baseRole });
+  const res = await api(app.origin, '/api/auth/login', { method: 'POST', body: { email, password } });
+  assert.equal(res.response.status, 200, `could not sign in as ${baseRole}`);
+  return { cookie: cookiesFrom(res.response), csrf: res.value.csrfToken, user: res.value.user };
+}
+
+test('the server refuses actions the signed-in role does not allow', async () => {
+  const app = await startApplication();
+  try {
+    // Owner must exist first, otherwise the first-run branch applies.
+    await signInAsOwner(app.origin);
+
+    // [role, route, method, expectedAllowed]
+    const matrix = [
+      ['employee', '/api/company', 'GET', true],
+      ['employee', '/api/people', 'GET', false],
+      ['employee', '/api/devices/punches', 'GET', false],
+      ['employee', '/api/company/reset', 'POST', false],
+      ['employee', '/api/backup', 'GET', false],
+      ['client', '/api/company', 'GET', true],
+      ['client', '/api/projects', 'GET', false],
+      ['lead', '/api/people', 'GET', true],
+      ['lead', '/api/devices', 'POST', false],
+      ['manager', '/api/people', 'GET', true],
+      ['manager', '/api/devices', 'POST', false],
+      ['manager', '/api/backup', 'GET', false],
+      ['director', '/api/backup', 'GET', true],
+      ['director', '/api/company/reset', 'POST', false],
+      ['admin', '/api/backup', 'GET', true],
+      // Wiping or overwriting the whole workspace stays with the owner.
+      ['admin', '/api/company/reset', 'POST', false],
+      ['admin', '/api/backup', 'POST', false],
+    ];
+
+    let n = 0;
+    for (const [role, route, method, allowed] of matrix) {
+      const session = await signInAs(app, role, n += 1);
+      const options = { session };
+      if (method !== 'GET') { options.method = method; options.body = {}; }
+      const result = await api(app.origin, route, options);
+      if (allowed) {
+        assert.notEqual(result.response.status, 403, `${role} should be allowed ${method} ${route}`);
+      } else {
+        assert.equal(result.response.status, 403, `${role} should be refused ${method} ${route}`);
+        assert.equal(result.value.code, 'FORBIDDEN');
+        assert.equal(result.value.role, role);
+        assert.ok(result.value.required, 'the refusal should name the capability it needed');
+      }
+    }
+  } finally {
+    await app.close();
+  }
+});
+
+test('a refused request is audited and the owner keeps full access', async () => {
+  const app = await startApplication();
+  try {
+    const owner = await signInAsOwner(app.origin);
+    const employee = await signInAs(app, 'employee');
+
+    const refused = await api(app.origin, '/api/people', { session: employee });
+    assert.equal(refused.response.status, 403);
+
+    const audit = await api(app.origin, '/api/audit', { session: owner });
+    const entry = audit.value.find((row) => row.action === 'auth.forbidden');
+    assert.ok(entry, 'the refusal should appear in the audit log');
+    assert.equal(entry.detail.role, 'employee');
+    assert.equal(entry.detail.needed, 'people:read');
+
+    // Owner is unaffected by any of it.
+    for (const route of ['/api/company', '/api/people', '/api/devices', '/api/backup', '/api/audit']) {
+      const hit = await api(app.origin, route, { session: owner });
+      assert.notEqual(hit.response.status, 403, `owner should keep access to ${route}`);
+    }
+  } finally {
+    await app.close();
+  }
+});
+
 test('sessions gate the app, survive sign-in, and end on sign-out', async () => {
   const app = await startApplication();
   try {

@@ -472,7 +472,8 @@ button.avatar{border:0;cursor:pointer;font:inherit}
         <button class="top-icon-btn notify" title="Notifications" onclick="openNotifications()">♢<i>3</i></button>
         <button class="top-icon-btn notify" title="Messages" onclick="navigate('discussions')">✉<i>5</i></button>
         <button class="top-icon-btn theme-toggle" data-theme-toggle title="Toggle dark mode">🌙</button>
-        <select id="roleSelect" class="role-select" title="Prototype role switch">
+        <select id="roleSelect" class="role-select" disabled
+                aria-label="Your role" title="Your role on this workspace">
           <option value="ceo">Owner / CEO</option>
           <option value="director">Division Director</option>
           <option value="manager">Department Manager</option>
@@ -1540,6 +1541,17 @@ function signOut(){
    const nameEl=document.getElementById('accountName');if(nameEl)nameEl.textContent=u.displayName||'Signed in';
    const mailEl=document.getElementById('accountEmail');if(mailEl)mailEl.textContent=u.email||'';
    const roleEl=document.getElementById('accountRole');if(roleEl)roleEl.textContent=u.baseRole||'';
+   // The role comes from the signed-in account, not from a control the person
+   // can change. The server enforces it either way; this stops the UI implying
+   // that picking a different option grants anything.
+   const UI_ROLE={owner:'ceo',admin:'ceo',director:'director',manager:'manager',lead:'lead',employee:'employee',client:'employee'};
+   const mapped=UI_ROLE[u.baseRole]||'employee';
+   if(roleSelect){
+    [...roleSelect.options].forEach(o=>{if(o.value!==mapped)o.remove()});
+    roleSelect.value=mapped;
+    roleSelect.disabled=true;
+    applyRole();
+   }
   })
   .catch(()=>{});
 })();

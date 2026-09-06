@@ -9,6 +9,7 @@ const { PeopleRegistry } = require('./people-registry');
 const { ProjectStore } = require('./project-store');
 const { DeviceManager } = require('./device-manager');
 const { UserStore } = require('./user-store');
+const permissions = require('./permissions');
 const { SessionStore } = require('./session-store');
 const { ensureDir, writeJsonAtomic } = require('./storage');
 
@@ -126,6 +127,20 @@ function createApplication(options = {}) {
             if (!sent || String(sent) !== session.csrf) {
               return sendJson(response, 403, { error: 'Invalid or missing CSRF token. Reload the page and try again.' });
             }
+          }
+
+          // Authorization. The role comes from the server session, never from
+          // anything the client sends, so a request made outside the UI is
+          // judged the same way as one made through it.
+          const needed = permissions.requiredCapability(request.method, pathname);
+          if (needed && !permissions.can(account.baseRole, needed)) {
+            audit.log('auth.forbidden', pathname, { ip: clientIp(request), role: account.baseRole, needed });
+            return sendJson(response, 403, {
+              error: 'Your role does not allow this action.',
+              code: 'FORBIDDEN',
+              required: needed,
+              role: account.baseRole,
+            });
           }
         }
 
@@ -383,7 +398,13 @@ async function handleAuth(request, response, url, context, basic) {
     const session = sessions.touch(readCookie(request, 'seo_session'));
     const account = session && users.findById(session.userId);
     if (!account || account.status !== 'active') return sendJson(response, 401, { error: 'Not signed in.' });
-    return sendJson(response, 200, { user: users.publicView(account), csrfToken: session.csrf });
+    return sendJson(response, 200, {
+      user: users.publicView(account),
+      csrfToken: session.csrf,
+      // Supplemental only: the server has already decided, this just lets the
+      // UI avoid offering an action it knows will be refused.
+      capabilities: permissions.capabilitiesFor(account.baseRole),
+    });
   }
 
   if (pathname === '/api/auth/logout' && request.method === 'POST') {
