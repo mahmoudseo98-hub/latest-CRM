@@ -406,8 +406,12 @@ async function handleAuth(request, response, url, context, basic) {
     const body = await readJsonBody(request);
     if (basic.authEnabled) {
       // Constant-time compare so the key cannot be guessed a character at a time.
-      const supplied = Buffer.from(String(body.setupKey || ''));
-      const expected = Buffer.from(String(basic.password));
+      // Both sides are trimmed: a hosting panel very often stores an environment
+      // variable with a trailing newline, and people paste with a stray space.
+      // Nobody intends surrounding whitespace in a key, and without this the
+      // comparison fails forever with nothing on screen to explain why.
+      const supplied = Buffer.from(String(body.setupKey || '').trim());
+      const expected = Buffer.from(String(basic.password).trim());
       const ok = supplied.length === expected.length && crypto.timingSafeEqual(supplied, expected);
       if (!ok) {
         audit.log('auth.bootstrap-rejected', ip, {});
