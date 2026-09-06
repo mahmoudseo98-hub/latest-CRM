@@ -206,6 +206,15 @@ test('first-run setup is guarded by the deployment key, asked for as a form fiel
     });
     assert.equal(weak.response.status, 400);
 
+    // A hosting panel commonly stores an environment variable with a trailing
+    // newline, and people paste keys with a stray space. Neither should lock the
+    // owner out of their own deployment with no way to tell why.
+    const padded = await api(app.origin, '/api/auth/bootstrap', {
+      method: 'POST',
+      body: { email: 'owner@example.com', displayName: 'Owner', password: 'short', setupKey: `  ${key} \n` },
+    });
+    assert.equal(padded.response.status, 400, 'a whitespace-padded key should get past the key check');
+
     const session = await signInAsOwner(app.origin, key);
     assert.equal(session.user.baseRole, 'owner');
 
@@ -228,6 +237,18 @@ test('first-run setup is guarded by the deployment key, asked for as a form fiel
 
     const withSessionCookie = await api(app.origin, '/launcher.html', { session });
     assert.equal(withSessionCookie.response.status, 200);
+  } finally {
+    await app.close();
+  }
+});
+
+test('a setup key stored with surrounding whitespace still opens first-run setup', async () => {
+  const key = 'correct horse battery staple';
+  // Exactly how a hosting panel tends to store it.
+  const app = await startApplication({ username: 'admin', password: `${key}\n` });
+  try {
+    const session = await signInAsOwner(app.origin, key);
+    assert.equal(session.user.baseRole, 'owner');
   } finally {
     await app.close();
   }

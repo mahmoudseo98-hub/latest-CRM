@@ -98,7 +98,8 @@ button.primary:disabled{opacity:.6;cursor:progress}
     <div class="field" id="setupKeyField" hidden>
       <label for="setupKey">Setup key</label>
       <input id="setupKey" name="setupKey" type="password" autocomplete="off" spellcheck="false">
-      <p class="hint">The deployment password set on the server (<code>APP_PASSWORD</code>). This is asked
+      <p class="hint">This is the <code>APP_PASSWORD</code> set on your hosting account
+         &mdash; in Hostinger, under <b>Advanced &rsaquo; Environment variables</b>. It is asked
          once, so only you can claim the owner account.</p>
     </div>
 
@@ -207,11 +208,20 @@ button.primary:disabled{opacity:.6;cursor:progress}
     clearAlert();
     email.setAttribute('aria-invalid', 'false');
     password.setAttribute('aria-invalid', 'false');
+    setupKey.setAttribute('aria-invalid', 'false');
 
     var body = { email: email.value.trim(), password: password.value };
     if (mode === 'register') {
       body.displayName = displayName.value.trim();
-      if (setupKeyNeeded) body.setupKey = setupKey.value;
+      if (setupKeyNeeded) {
+        if (!setupKey.value) {
+          setupKey.setAttribute('aria-invalid', 'true');
+          setupKey.focus();
+          show('Enter the setup key first. It is the APP_PASSWORD set on your hosting account.');
+          return;
+        }
+        body.setupKey = setupKey.value;
+      }
     }
     else body.remember = document.getElementById('remember').checked;
 
@@ -232,7 +242,11 @@ button.primary:disabled{opacity:.6;cursor:progress}
       submit.textContent = mode === 'register' ? 'Create account & sign in' : 'Sign in';
       show(r.data && r.data.error ? r.data.error : 'Something went wrong. Please try again.');
       if (r.status === 401) { password.value = ''; password.setAttribute('aria-invalid', 'true'); password.focus(); }
-      if (r.status === 403 && mode === 'register') { setupKey.setAttribute('aria-invalid', 'true'); setupKey.focus(); }
+      if (r.status === 403 && mode === 'register' && setupKeyNeeded) {
+        setupKey.value = '';
+        setupKey.setAttribute('aria-invalid', 'true');
+        setupKey.focus();
+      }
     }).catch(function () {
       submit.disabled = false;
       submit.textContent = mode === 'register' ? 'Create account & sign in' : 'Sign in';
