@@ -98,9 +98,9 @@ button.primary:disabled{opacity:.6;cursor:progress}
     <div class="field" id="setupKeyField" hidden>
       <label for="setupKey">Setup key</label>
       <input id="setupKey" name="setupKey" type="password" autocomplete="off" spellcheck="false">
-      <p class="hint">This is the <code>APP_PASSWORD</code> set on your hosting account
-         &mdash; in Hostinger, under <b>Advanced &rsaquo; Environment variables</b>. It is asked
-         once, so only you can claim the owner account.</p>
+      <p class="hint">This is the <code>APP_PASSWORD</code> environment variable set where this
+         app is deployed &mdash; usually under environment or configuration settings in your
+         hosting control panel. It is asked once, so only you can claim the owner account.</p>
     </div>
 
     <div class="field" id="nameField" hidden>
@@ -217,7 +217,7 @@ button.primary:disabled{opacity:.6;cursor:progress}
         if (!setupKey.value) {
           setupKey.setAttribute('aria-invalid', 'true');
           setupKey.focus();
-          show('Enter the setup key first. It is the APP_PASSWORD set on your hosting account.');
+          show('Enter the setup key first. It is the APP_PASSWORD environment variable set where this app is deployed.');
           return;
         }
         body.setupKey = setupKey.value;

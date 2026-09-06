@@ -110,7 +110,7 @@ function fillRegistration() {
   $('fOwnerName').value = state.owner.name;
   $('fOwnerId').value = state.owner.employeeId;
   const sel = $('fOwnerDept');
-  sel.innerHTML = state.departments.map((d) => `<option>${d}</option>`).join('');
+  sel.innerHTML = state.departments.map((d) => `<option>${esc(d)}</option>`).join('');
   sel.value = state.owner.department || state.departments[0];
 }
 document.querySelectorAll('input[name="regRole"]').forEach((r) => r.addEventListener('change', () => {
@@ -120,7 +120,7 @@ document.querySelectorAll('input[name="regRole"]').forEach((r) => r.addEventList
 /* ---------- step 2: departments ---------- */
 function renderDepts() {
   $('deptChips').innerHTML = state.departments.map((d, i) =>
-    `<span class="chip-item">${d}<button title="remove" data-i="${i}">✕</button></span>`).join('');
+    `<span class="chip-item">${esc(d)}<button title="remove" data-i="${i}">✕</button></span>`).join('');
   $('deptChips').querySelectorAll('button').forEach((b) => b.onclick = () => {
     state.departments.splice(+b.dataset.i, 1);
     if (!state.departments.length) state.departments = ['General'];
@@ -128,7 +128,7 @@ function renderDepts() {
   });
   // keep owner dept select in sync
   const sel = $('fOwnerDept');
-  if (sel) { sel.innerHTML = state.departments.map((d) => `<option>${d}</option>`).join(''); }
+  if (sel) { sel.innerHTML = state.departments.map((d) => `<option>${esc(d)}</option>`).join(''); }
 }
 $('btnAddDept') && ($('btnAddDept').onclick = () => {
   const v = $('fNewDept').value.trim();
@@ -147,7 +147,7 @@ function renderEmployees() {
     <tr data-i="${i}">
       <td><input class="e-name" value="${esc(e.name)}"></td>
       <td><input class="e-id" value="${esc(e.employeeId)}"></td>
-      <td><select class="e-dept">${state.departments.map((d) => `<option ${d === e.department ? 'selected' : ''}>${d}</option>`).join('')}</select></td>
+      <td><select class="e-dept">${state.departments.map((d) => `<option ${d === e.department ? 'selected' : ''}>${esc(d)}</option>`).join('')}</select></td>
       <td><select class="e-role">${ROLES.map((r) => `<option value="${r}" ${r === e.role ? 'selected' : ''}>${ROLE_LABEL[r]}</option>`).join('')}</select></td>
       <td><input class="e-dev" value="${esc(e.deviceId || '')}"></td>
       <td><button class="del" title="remove" data-i="${i}">✕</button></td>
@@ -190,7 +190,7 @@ function renderDevices() {
   if (!all.length) { el.innerHTML = '<div class="empty">No devices configured yet — add one below or skip (Devices Hub is always available).</div>'; return; }
   el.innerHTML = all.map((d, i) => `
     <div class="setup-dev"><span class="dot"></span>
-      <b>${esc(d.name)}</b> · ${DEV_TYPES[d.type] || d.type} · ${esc((d.config && (d.config.host || d.config.port)) || 'web/server')}
+      <b>${esc(d.name)}</b> · ${esc(DEV_TYPES[d.type] || d.type)} · ${esc((d.config && (d.config.host || d.config.port)) || 'web/server')}
       <button data-i="${i}">REMOVE</button></div>`).join('');
   el.querySelectorAll('button').forEach((b) => b.onclick = async () => {
     await api.devices.remove(devices[b.dataset.i].id);
@@ -249,11 +249,11 @@ $('btnPickBackup') && ($('btnPickBackup').onclick = async () => {
 function renderSummary() {
   const o = state.owner;
   const cards = [
-    ['Company', `<b>${state.companyName || '—'}</b><br><small>${state.tagline || ''} · ${state.country || '?'} · ${state.timezone} · ${state.currency}</small>`],
-    ['Registered as', `<b>${ROLE_LABEL[state.registeredAs]}</b><br><small>${o.name || '—'} · ID ${o.employeeId || '—'} · ${o.department || '—'}</small>`],
-    ['Departments', state.departments.join(', ')],
+    ['Company', `<b>${esc(state.companyName || '—')}</b><br><small>${esc(state.tagline || '')} · ${esc(state.country || '?')} · ${esc(state.timezone)} · ${esc(state.currency)}</small>`],
+    ['Registered as', `<b>${esc(ROLE_LABEL[state.registeredAs] || state.registeredAs)}</b><br><small>${esc(o.name || '—')} · ID ${esc(o.employeeId || '—')} · ${esc(o.department || '—')}</small>`],
+    ['Departments', esc(state.departments.join(', '))],
     ['Employees', `${state.employees.length} registered (incl. owner)`],
-    ['Fingerprint devices', devices.length ? devices.map((d) => `${d.name} (${DEV_TYPES[d.type] || d.type})`).join('<br>') : 'None yet — add later in Devices Hub'],
+    ['Fingerprint devices', devices.length ? devices.map((d) => `${esc(d.name)} (${esc(DEV_TYPES[d.type] || d.type)})`).join('<br>') : 'None yet — add later in Devices Hub'],
     ['Rules', `Work day ${state.prefs.workHours}h · ${state.prefs.weekdays.length} days/wk · Backup ${state.prefs.autoBackup ? 'ON' : 'OFF'} · Demo records ${state.prefs.keepDemoRecords ? 'kept' : 'cleared'}`],
   ];
   $('summaryCards').innerHTML = cards.map(([k, v]) => `<div class="sum-card"><div class="k">${k}</div><div class="v">${v}</div></div>`).join('');

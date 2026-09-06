@@ -30,7 +30,6 @@
   async function loadCompany() {
     const cfg = await api.company.get();
     const setText = (id, v) => { const el = document.getElementById(id); if (el) el.textContent = v; };
-    const setHtml = (id, v) => { const el = document.getElementById(id); if (el) el.innerHTML = v; };
     const strip = document.getElementById('companyStrip');
     const warn = document.getElementById('warnStrip');
     if (!cfg) {
@@ -55,7 +54,15 @@
     setText('coRole', roleLabel[cfg.registeredAs] || cfg.registeredAs);
     setText('coOwner', (cfg.owner ? cfg.owner.name + ' · ' + cfg.owner.employeeId : '—'));
     setText('coEmps', (cfg.employees ? cfg.employees.length : 0) + ' registered');
-    setHtml('coNameTop', (cfg.companyName || 'SEO FOR ALL') + ' <b>OS</b>');
+    // The company name is user-controlled, so build the node rather than parsing
+    // it as HTML. Only the trailing "OS" is ours to mark up.
+    const nameTop = document.getElementById('coNameTop');
+    if (nameTop) {
+      nameTop.textContent = (cfg.companyName || 'SEO FOR ALL') + ' ';
+      const os = document.createElement('b');
+      os.textContent = 'OS';
+      nameTop.appendChild(os);
+    }
     setText('coTagTop', cfg.tagline || 'Company Intelligence OS');
     document.title = cfg.companyName + ' — SEO For All OS';
     const devs = await api.devices.list().catch(() => []);

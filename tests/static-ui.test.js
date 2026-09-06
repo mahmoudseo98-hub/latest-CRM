@@ -68,3 +68,34 @@ test('launcher, setup, and devices pages load web-api before their page logic', 
   assert.match(setupScript, /state\.prefs\.autoBackup[\s\S]*api\.openDataFolder\(\)/, 'automatic backup must initiate a server-backup download');
   assert.doesNotMatch(setupScript + devicesScript, /fListenPort|devRowListen|rowPort2/, 'managed hosting must not expose a stale secondary HTTP listener port');
 });
+
+// A department name, company name or employee field is whatever the user typed.
+// Interpolating one into innerHTML without escaping is a stored-XSS path: the
+// value is saved to the server and re-rendered for everyone who opens the page.
+// setup.html still allows 'unsafe-inline', so an injected handler there runs.
+test('user-controlled values are escaped before reaching innerHTML', () => {
+  // Expressions that resolve to something a user typed.
+  const userData = [
+    'd', 'e.name', 'e.employeeId', 'e.deviceId', 'd.name', 'd.type',
+    'state.companyName', 'state.tagline', 'state.country', 'state.timezone',
+    'state.currency', 'state.departments.join', 'o.name', 'o.employeeId',
+    'o.department', 'cfg.companyName', 'cfg.tagline',
+  ];
+  for (const relative of ['setup.js', 'launcher.js', 'devices.js']) {
+    const source = fs.readFileSync(path.join(publicDir, relative), 'utf8');
+    // Every `${...}` interpolation appearing anywhere in the file's templates.
+    for (const [, expression] of source.matchAll(/\$\{([^}]*)\}/g)) {
+      const inner = expression.trim();
+      if (!userData.some((name) => inner === name || inner.startsWith(`${name} `) || inner.startsWith(`${name}.`) || inner.startsWith(`${name}(`))) continue;
+      assert.match(
+        inner, /\besc\(/,
+        `${relative} interpolates user data "${inner}" without esc()`,
+      );
+    }
+    // String-concatenation sinks are the same hazard in a different shape.
+    for (const [, expression] of source.matchAll(/innerHTML\s*=\s*([^;]+);/g)) {
+      if (!/companyName|tagline/.test(expression)) continue;
+      assert.match(expression, /\besc\(|encodeURIComponent\(/, `${relative} builds innerHTML from a company field unescaped`);
+    }
+  }
+});
