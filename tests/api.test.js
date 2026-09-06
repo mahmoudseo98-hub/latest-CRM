@@ -380,6 +380,25 @@ test('sample records are opt-in and never merged with a configured company', asy
   }
 });
 
+test('health reports the running instance so a deploy can be confirmed', async () => {
+  const app = await startApplication();
+  try {
+    // Reachable without a session: it is what an uptime check and a deploy
+    // verification both call.
+    const first = await api(app.origin, '/api/health');
+    assert.equal(first.response.status, 200);
+    assert.equal(first.value.status, 'ok');
+    assert.ok(first.value.startedAt, 'health should report when this instance booted');
+    assert.ok(!Number.isNaN(Date.parse(first.value.startedAt)));
+
+    // startedAt is fixed for the instance; timestamp is not.
+    const second = await api(app.origin, '/api/health');
+    assert.equal(second.value.startedAt, first.value.startedAt);
+  } finally {
+    await app.close();
+  }
+});
+
 test('sessions gate the app, survive sign-in, and end on sign-out', async () => {
   const app = await startApplication();
   try {

@@ -14,6 +14,8 @@ const { SessionStore } = require('./session-store');
 const { ensureDir, writeJsonAtomic } = require('./storage');
 
 const VERSION = '1.0.0';
+// When this process booted. Fixed for the life of the instance.
+const STARTED_AT = new Date().toISOString();
 const LOCKED_PAGE = `<!doctype html><html lang="en"><head><meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1"><title>Configuration required</title>
 <style>body{margin:0;min-height:100vh;display:grid;place-items:center;background:#0B1220;color:#F8FAFC;
@@ -73,7 +75,14 @@ function createApplication(options = {}) {
 
     try {
       if (pathname === '/api/health' && request.method === 'GET') {
-        return sendJson(response, 200, { status: 'ok', version: VERSION, timestamp: new Date().toISOString() });
+        // startedAt identifies the running instance, so a deploy can be confirmed
+        // from outside: if it has not moved, the new code is not serving yet.
+        return sendJson(response, 200, {
+          status: 'ok',
+          version: VERSION,
+          startedAt: STARTED_AT,
+          timestamp: new Date().toISOString(),
+        });
       }
       // Fail closed in production. Without credentials this app served the whole
       // company — people, attendance, payroll and audit data — to anyone with the
