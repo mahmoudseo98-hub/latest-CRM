@@ -338,6 +338,48 @@ test('a refused request is audited and the owner keeps full access', async () =>
   }
 });
 
+test('sample records are opt-in and never merged with a configured company', async () => {
+  const app = await startApplication();
+  try {
+    const session = await signInAsOwner(app.origin);
+    const call = withSession(app.origin, session);
+    const company = {
+      companyName: 'Bmahaba', tagline: 'Ops', country: 'EG', timezone: 'Africa/Cairo', currency: 'EGP',
+      registeredAs: 'ceo',
+      owner: { name: 'Mahmoud', employeeId: '1001', department: 'Management' },
+      departments: ['Management', 'SEO'],
+      employees: [
+        { name: 'Mahmoud', employeeId: '1001', department: 'Management', role: 'ceo' },
+        { name: 'Layla Ibrahim', employeeId: '1002', department: 'SEO', role: 'employee' },
+      ],
+    };
+
+    // A company saved without asking for sample records must not get them.
+    await call('/api/company', { method: 'PUT', body: { ...company, preferences: { workHours: 8 } } });
+    let data = (await call('/api/company/app-data')).value;
+    assert.equal(data.sampleData, false, 'sample records must be off unless asked for');
+    assert.deepEqual(data.employees.map((e) => e.name), ['Mahmoud', 'Layla Ibrahim']);
+
+    // Explicitly declining is also off.
+    await call('/api/company', { method: 'PUT', body: { ...company, preferences: { keepDemoRecords: false } } });
+    assert.equal((await call('/api/company/app-data')).value.sampleData, false);
+
+    // Only an explicit opt-in turns them on.
+    await call('/api/company', { method: 'PUT', body: { ...company, preferences: { keepDemoRecords: true } } });
+    assert.equal((await call('/api/company/app-data')).value.sampleData, true);
+
+    // Real employees never carry invented metrics, whichever mode is on.
+    const seeded = (await call('/api/company/app-data')).value.employees;
+    for (const employee of seeded) {
+      for (const metric of ['tasks', 'quality', 'hours', 'attendance', 'deductions', 'managerRating']) {
+        assert.equal(employee[metric], 0, `${employee.name}.${metric} should start at 0, not a demo figure`);
+      }
+    }
+  } finally {
+    await app.close();
+  }
+});
+
 test('sessions gate the app, survive sign-in, and end on sign-out', async () => {
   const app = await startApplication();
   try {

@@ -99,3 +99,18 @@ test('user-controlled values are escaped before reaching innerHTML', () => {
     }
   }
 });
+
+// Sample records and a configured company's real data must never be merged: that
+// is what made demo employees appear alongside a real roster.
+test('the company OS gates sample data behind an explicit server flag', () => {
+  const html = fs.readFileSync(path.join(publicDir, 'seo-for-all', 'index.html'), 'utf8');
+  assert.match(html, /const SAMPLE_MODE=!serverData\|\|serverData\.sampleData===true;/,
+    'sample mode must be decided from the server flag, not the client');
+  assert.match(html, /const companyData=SAMPLE_MODE/,
+    'companyData must branch on sample mode instead of merging both sets');
+  assert.doesNotMatch(html, /const companyData=Object\.assign\(\{[\s\S]{0,80}name:'Sarah Adel'/,
+    'sample employees must not be merged straight into companyData');
+  // Every static sample row carries a marker so the runtime pass can remove it.
+  const marked = (html.match(/data-sample[ >]/g) || []).length;
+  assert.ok(marked >= 25, `expected the static sample rows to be marked, found ${marked}`);
+});
