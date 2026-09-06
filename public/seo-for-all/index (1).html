@@ -410,6 +410,7 @@ button:not(:disabled):hover{filter:saturate(1.04)}
   font-size:14px;line-height:1;padding:4px;border-radius:6px;min-width:28px;min-height:28px}
 .demo-banner-x:hover{background:rgba(0,0,0,.06);color:var(--ink)}
 .demo-banner[hidden]{display:none}
+.sample-empty{margin:0;padding:14px 4px;font-size:12.5px;line-height:1.55;color:var(--muted)}
 
 /* Account menu: identity and the way out. */
 .account-menu{position:relative}
@@ -521,7 +522,7 @@ button.avatar{border:0;cursor:pointer;font:inherit}
           <div class="seo-main-column">
             <div class="seo-row-3">
               <div class="card dashboard-card"><div class="section-head"><h3>Attendance Overview</h3><button class="text-link" onclick="navigate('attendance')">View all</button></div><div class="attendance-viz"><div class="attendance-donut"><div><b>96.4%</b><span>Present</span></div></div><div class="attendance-legend"><span><i class="lg green-dot"></i>Present <b>46</b><em>96.4%</em></span><span><i class="lg red-dot"></i>Absent <b>1</b><em>2.1%</em></span><span><i class="lg amber-dot"></i>Late <b>1</b><em>2.1%</em></span><span><i class="lg gray-dot"></i>On leave <b>0</b><em>0%</em></span></div></div></div>
-              <div class="card dashboard-card"><div class="section-head"><h3>Most Productive Employees</h3><button class="text-link" onclick="navigate('performance')">View all</button></div><div class="productivity-list"><div class="prod-row"><span class="mini-avatar">YS</span><div><b>Youssef Salem</b><small>Technical SEO</small></div><div class="prod-meter"><i style="width:98%"></i></div><strong>98%</strong></div><div class="prod-row"><span class="mini-avatar">SA</span><div><b>Sarah Adel</b><small>Growth & Strategy</small></div><div class="prod-meter"><i style="width:94%"></i></div><strong>94%</strong></div><div class="prod-row"><span class="mini-avatar">AN</span><div><b>Ahmed Nabil</b><small>Design & CRO</small></div><div class="prod-meter"><i style="width:92%"></i></div><strong>92%</strong></div><div class="prod-row"><span class="mini-avatar">MF</span><div><b>Mona Fathy</b><small>Content Marketing</small></div><div class="prod-meter"><i style="width:90%"></i></div><strong>90%</strong></div></div></div>
+              <div class="card dashboard-card"><div class="section-head"><h3>Most Productive Employees</h3><button class="text-link" onclick="navigate('performance')">View all</button></div><div class="productivity-list"><div class="prod-row" data-sample><span class="mini-avatar">YS</span><div><b>Youssef Salem</b><small>Technical SEO</small></div><div class="prod-meter"><i style="width:98%"></i></div><strong>98%</strong></div><div class="prod-row" data-sample><span class="mini-avatar">SA</span><div><b>Sarah Adel</b><small>Growth & Strategy</small></div><div class="prod-meter"><i style="width:94%"></i></div><strong>94%</strong></div><div class="prod-row" data-sample><span class="mini-avatar">AN</span><div><b>Ahmed Nabil</b><small>Design & CRO</small></div><div class="prod-meter"><i style="width:92%"></i></div><strong>92%</strong></div><div class="prod-row" data-sample><span class="mini-avatar">MF</span><div><b>Mona Fathy</b><small>Content Marketing</small></div><div class="prod-meter"><i style="width:90%"></i></div><strong>90%</strong></div></div></div>
               <div class="card dashboard-card"><div class="section-head"><h3>Department Performance</h3><button class="text-link" onclick="navigate('performance')">View report</button></div><div class="dept-performance"><div><span>SEO Operations</span><b>↑ 16%</b><i><em style="width:94%"></em></i></div><div><span>Content Marketing</span><b>↑ 12%</b><i><em style="width:83%"></em></i></div><div><span>Link Building</span><b>↑ 10%</b><i><em style="width:74%"></em></i></div><div><span>Technical SEO</span><b>↑ 8%</b><i><em style="width:67%"></em></i></div><div><span>Design & CRO</span><b>↑ 6%</b><i><em style="width:56%"></em></i></div></div><div class="card-footnote">Performance blends verified task outcomes, quality and delivery.</div></div>
             </div>
 
@@ -537,7 +538,7 @@ button.avatar{border:0;cursor:pointer;font:inherit}
           <aside class="seo-right-rail">
 
 
-            <div class="card seo-signal-card"><div class="section-head"><h3>SEO Delivery Signal</h3><span class="badge green">Healthy</span></div><div class="signal-score"><b>91</b><span>/100 agency delivery health</span></div><div class="signal-row"><span>Critical client deadlines</span><b>4</b></div><div class="signal-row"><span>Campaigns at risk</span><b class="warn-text">2</b></div><div class="signal-row"><span>Unblocked this week</span><b class="up">11</b></div></div>
+            <div class="card seo-signal-card"><div class="section-head"><h3>SEO Delivery Signal</h3><span class="badge green">Healthy</span></div><div class="signal-score"><b>91</b><span>/100 agency delivery health</span></div><div class="signal-row" data-sample><span>Critical client deadlines</span><b>4</b></div><div class="signal-row" data-sample><span>Campaigns at risk</span><b class="warn-text">2</b></div><div class="signal-row" data-sample><span>Unblocked this week</span><b class="up">11</b></div></div>
           </aside>
         </div>
       </section>
@@ -555,29 +556,29 @@ button.avatar{border:0;cursor:pointer;font:inherit}
       <section id="attendance" class="view">
         <div class="title-row"><div><div class="eyebrow">Fingerprint + Monthly Ledger</div><h1>Attendance, Hours & Deductions</h1><div class="subtitle">Worked hours are calculated from verified check-in/check-out events. Deductions require policy, reason, evidence, and approval.</div></div><button class="btn btn-primary" id="deductionButton" data-action="new-deduction">+ New Deduction Request</button></div>
         <div class="grid kpis">
-          <div class="card kpi"><div class="label">Expected hours</div><div class="value" id="expectedHours">35,520h</div><div class="delta">August target</div></div>
-          <div class="card kpi"><div class="label">Worked hours</div><div class="value" id="workedHours">31,482h</div><div class="delta">To date</div></div>
-          <div class="card kpi"><div class="label">Overtime</div><div class="value">486h</div><div class="delta">Approved + pending</div></div>
-          <div class="card kpi"><div class="label">Approved deductions</div><div class="value" id="approvedDeductions">EGP 12,840</div><div class="delta">Attendance-related only</div></div>
+          <div class="card kpi"><div class="label">Expected hours</div><div class="value" id="expectedHours" data-sample-value="—">35,520h</div><div class="delta" data-sample-value="Set from your work-hours policy">August target</div></div>
+          <div class="card kpi"><div class="label">Worked hours</div><div class="value" id="workedHours" data-sample-value="—">31,482h</div><div class="delta" data-sample-value="No verified punches yet">To date</div></div>
+          <div class="card kpi"><div class="label">Overtime</div><div class="value" data-sample-value="—">486h</div><div class="delta">Approved + pending</div></div>
+          <div class="card kpi"><div class="label">Approved deductions</div><div class="value" id="approvedDeductions" data-sample-value="—">EGP 12,840</div><div class="delta">Attendance-related only</div></div>
         </div>
-        <div class="card" style="margin-bottom:18px"><div class="section-head"><h3>Monthly Employee Attendance Ledger</h3><div class="filter-row"><select><option>August 2026</option><option>July 2026</option></select><select><option>All departments</option><option>Marketing</option><option>IT</option><option>Finance</option></select><input placeholder="Search employee" /></div></div>
+        <div class="card" style="margin-bottom:18px"><div class="section-head"><h3>Monthly Employee Attendance Ledger</h3><div class="filter-row"><select id="attendancePeriod" aria-label="Attendance period"><option>August 2026</option><option>July 2026</option></select><select><option>All departments</option><option>Marketing</option><option>IT</option><option>Finance</option></select><input placeholder="Search employee" /></div></div>
           <div class="table-wrap"><table class="table" id="attendanceTable"><thead><tr><th>Employee</th><th>Department</th><th>Expected</th><th>Worked</th><th>Overtime</th><th>Late</th><th>Absent</th><th>Pending</th><th>Approved deduction</th><th>Status</th></tr></thead><tbody>
-            <tr data-scope="marketing"><td><b>Sarah Adel</b></td><td>Marketing</td><td>112h</td><td class="hours-good">112.5h</td><td>2.5h</td><td>18m</td><td>0</td><td>—</td><td>EGP 0</td><td><span class="badge green">On track</span></td></tr>
-            <tr data-scope="it"><td><b>Youssef Salem</b></td><td>IT</td><td>112h</td><td class="hours-good">118.2h</td><td>6.2h</td><td>0m</td><td>0</td><td>—</td><td>EGP 0</td><td><span class="badge green">On track</span></td></tr>
-            <tr data-scope="design"><td><b>Ahmed Nabil</b></td><td>Design</td><td>112h</td><td class="hours-warn">107.8h</td><td>1.0h</td><td>45m</td><td>1</td><td>EGP 150</td><td>EGP 300</td><td><span class="badge amber">Review</span></td></tr>
-            <tr data-scope="finance"><td><b>Reem Wael</b></td><td>Finance</td><td>112h</td><td>110.4h</td><td>0.4h</td><td>22m</td><td>0</td><td>—</td><td>EGP 80</td><td><span class="badge green">Approved</span></td></tr>
-            <tr data-scope="marketing"><td><b>Mona Fathy</b></td><td>Marketing</td><td>112h</td><td class="hours-warn">103.6h</td><td>0h</td><td>71m</td><td>1</td><td>EGP 250</td><td>EGP 300</td><td><span class="badge amber">Pending</span></td></tr>
+            <tr data-sample data-scope="marketing"><td><b>Sarah Adel</b></td><td>Marketing</td><td>112h</td><td class="hours-good">112.5h</td><td>2.5h</td><td>18m</td><td>0</td><td>—</td><td>EGP 0</td><td><span class="badge green">On track</span></td></tr>
+            <tr data-sample data-scope="it"><td><b>Youssef Salem</b></td><td>IT</td><td>112h</td><td class="hours-good">118.2h</td><td>6.2h</td><td>0m</td><td>0</td><td>—</td><td>EGP 0</td><td><span class="badge green">On track</span></td></tr>
+            <tr data-sample data-scope="design"><td><b>Ahmed Nabil</b></td><td>Design</td><td>112h</td><td class="hours-warn">107.8h</td><td>1.0h</td><td>45m</td><td>1</td><td>EGP 150</td><td>EGP 300</td><td><span class="badge amber">Review</span></td></tr>
+            <tr data-sample data-scope="finance"><td><b>Reem Wael</b></td><td>Finance</td><td>112h</td><td>110.4h</td><td>0.4h</td><td>22m</td><td>0</td><td>—</td><td>EGP 80</td><td><span class="badge green">Approved</span></td></tr>
+            <tr data-sample data-scope="marketing"><td><b>Mona Fathy</b></td><td>Marketing</td><td>112h</td><td class="hours-warn">103.6h</td><td>0h</td><td>71m</td><td>1</td><td>EGP 250</td><td>EGP 300</td><td><span class="badge amber">Pending</span></td></tr>
           </tbody></table></div>
         </div>
         <div class="grid two-col">
-          <div class="card"><div class="section-head"><h3>Fingerprint Event Stream</h3><span class="badge green">4 devices online</span></div>
-            <div class="activity-item"><div class="ico">F</div><div><b>Sarah Adel · Check in</b><p>HQ Gate A · Device FP-01 · verified fingerprint</p></div><span class="time">09:02</span></div>
-            <div class="activity-item"><div class="ico">F</div><div><b>Ahmed Nabil · Check in</b><p>HQ Gate A · 45 minutes after shift start</p></div><span class="time">09:45</span></div>
-            <div class="activity-item"><div class="ico">F</div><div><b>Youssef Salem · Check in</b><p>Engineering Floor · Device FP-03</p></div><span class="time">08:51</span></div>
+          <div class="card"><div class="section-head"><h3>Fingerprint Event Stream</h3><span class="badge green" data-sample-value="No devices reporting">4 devices online</span></div>
+            <div class="activity-item" data-sample><div class="ico">F</div><div><b>Sarah Adel · Check in</b><p>HQ Gate A · Device FP-01 · verified fingerprint</p></div><span class="time">09:02</span></div>
+            <div class="activity-item" data-sample><div class="ico">F</div><div><b>Ahmed Nabil · Check in</b><p>HQ Gate A · 45 minutes after shift start</p></div><span class="time">09:45</span></div>
+            <div class="activity-item" data-sample><div class="ico">F</div><div><b>Youssef Salem · Check in</b><p>Engineering Floor · Device FP-03</p></div><span class="time">08:51</span></div>
           </div>
           <div class="card"><div class="section-head"><h3>Deduction Approval Queue</h3><span class="badge amber" id="deductionQueueCount">2 pending</span></div><div id="deductionQueue">
-            <div class="request-card"><div class="meta"><span class="badge amber">Manager requested</span><span class="deduction-amt">EGP 250</span></div><h4>Mona Fathy · Attendance</h4><p>71 late minutes. Evidence: fingerprint events #8122–#8129. Awaiting HR/Finance approval.</p><div class="flow"><span class="step done">Requested</span>→<span class="step">HR review</span>→<span class="step">Finance approval</span></div></div>
-            <div class="request-card"><div class="meta"><span class="badge amber">HR reviewed</span><span class="deduction-amt">EGP 150</span></div><h4>Ahmed Nabil · Late arrival</h4><p>45 minutes. Employee explanation attached. Awaiting final approval.</p><div class="flow"><span class="step done">Requested</span>→<span class="step done">HR review</span>→<span class="step">Finance approval</span></div></div>
+            <div class="request-card" data-sample><div class="meta"><span class="badge amber">Manager requested</span><span class="deduction-amt">EGP 250</span></div><h4>Mona Fathy · Attendance</h4><p>71 late minutes. Evidence: fingerprint events #8122–#8129. Awaiting HR/Finance approval.</p><div class="flow"><span class="step done">Requested</span>→<span class="step">HR review</span>→<span class="step">Finance approval</span></div></div>
+            <div class="request-card" data-sample><div class="meta"><span class="badge amber">HR reviewed</span><span class="deduction-amt">EGP 150</span></div><h4>Ahmed Nabil · Late arrival</h4><p>45 minutes. Employee explanation attached. Awaiting final approval.</p><div class="flow"><span class="step done">Requested</span>→<span class="step done">HR review</span>→<span class="step">Finance approval</span></div></div>
           </div></div>
       </section>
 
@@ -607,25 +608,25 @@ button.avatar{border:0;cursor:pointer;font:inherit}
         <div class="filter-row" style="margin-bottom:14px"><select id="taskDeptFilter" onchange="filterTasks()"><option value="all">All permitted departments</option><option>Marketing</option><option>IT</option><option>Design</option><option>Finance</option></select><select id="taskPriorityFilter" onchange="filterTasks()"><option value="all">All priorities</option><option>High</option><option>Medium</option><option>Low</option></select><input id="taskSearch" oninput="filterTasks()" placeholder="Search tasks or assignee…"/></div>
         <div class="task-board" id="taskBoard">
           <div class="task-column" data-status="todo"><h4>To Do <span class="badge gray" id="todoCount">2</span></h4><div id="todoTasks">
-            <div class="task-card" draggable="true" data-dept="Marketing" data-priority="High" data-scope="marketing" data-owner="self"><div class="task-meta"><span class="badge red">High</span><span class="badge purple">Marketing</span></div><h5>Finalize Q3 campaign brief</h5><p>Assigned to Sarah Adel · by Marketing Manager · Due Aug 10</p><div class="task-meta"><span class="time">TASK-184</span><span class="time">0/4 checklist</span></div><div class="task-actions"><button onclick="advanceTask(this,'progress')">Start</button><button onclick="taskDetails('TASK-184')">Activity</button></div></div>
-            <div class="task-card" draggable="true" data-dept="IT" data-priority="Medium" data-scope="it"><div class="task-meta"><span class="badge amber">Medium</span><span class="badge blue">IT</span></div><h5>Prepare access-control audit</h5><p>Assigned to Youssef Salem · by Operations Director · Due Aug 12</p><div class="task-meta"><span class="time">TASK-179</span><span class="time">2 attachments</span></div><div class="task-actions"><button onclick="advanceTask(this,'progress')">Start</button><button onclick="taskDetails('TASK-179')">Activity</button></div></div>
+            <div class="task-card" data-sample draggable="true" data-dept="Marketing" data-priority="High" data-scope="marketing" data-owner="self"><div class="task-meta"><span class="badge red">High</span><span class="badge purple">Marketing</span></div><h5>Finalize Q3 campaign brief</h5><p>Assigned to Sarah Adel · by Marketing Manager · Due Aug 10</p><div class="task-meta"><span class="time">TASK-184</span><span class="time">0/4 checklist</span></div><div class="task-actions"><button onclick="advanceTask(this,'progress')">Start</button><button onclick="taskDetails('TASK-184')">Activity</button></div></div>
+            <div class="task-card" data-sample draggable="true" data-dept="IT" data-priority="Medium" data-scope="it"><div class="task-meta"><span class="badge amber">Medium</span><span class="badge blue">IT</span></div><h5>Prepare access-control audit</h5><p>Assigned to Youssef Salem · by Operations Director · Due Aug 12</p><div class="task-meta"><span class="time">TASK-179</span><span class="time">2 attachments</span></div><div class="task-actions"><button onclick="advanceTask(this,'progress')">Start</button><button onclick="taskDetails('TASK-179')">Activity</button></div></div>
           </div></div>
           <div class="task-column" data-status="progress"><h4>In Progress <span class="badge blue" id="progressCount">2</span></h4><div id="progressTasks">
-            <div class="task-card" draggable="true" data-dept="Design" data-priority="High" data-scope="shared"><div class="task-meta"><span class="badge red">High</span><span class="badge purple">Design</span><span class="badge green">Cross-dept</span></div><h5>Client landing-page redesign</h5><p>Assigned to Ahmed Nabil · requested by Marketing · Due Aug 9</p><div class="task-meta"><span class="time">TASK-172</span><span class="time">Work log 6.4h</span></div><div class="task-actions"><button onclick="advanceTask(this,'review')">Submit Review</button><button onclick="taskDetails('TASK-172')">Activity</button></div></div>
-            <div class="task-card" draggable="true" data-dept="Marketing" data-priority="Medium" data-scope="marketing" data-owner="other"><div class="task-meta"><span class="badge amber">Medium</span><span class="badge purple">Marketing</span></div><h5>Arabic competitor analysis</h5><p>Assigned to Mona Fathy · by Team Lead · Due Aug 11</p><div class="task-meta"><span class="time">TASK-169</span><span class="time">Work log 3.1h</span></div><div class="task-actions"><button onclick="advanceTask(this,'review')">Submit Review</button><button onclick="taskDetails('TASK-169')">Activity</button></div></div>
+            <div class="task-card" data-sample draggable="true" data-dept="Design" data-priority="High" data-scope="shared"><div class="task-meta"><span class="badge red">High</span><span class="badge purple">Design</span><span class="badge green">Cross-dept</span></div><h5>Client landing-page redesign</h5><p>Assigned to Ahmed Nabil · requested by Marketing · Due Aug 9</p><div class="task-meta"><span class="time">TASK-172</span><span class="time">Work log 6.4h</span></div><div class="task-actions"><button onclick="advanceTask(this,'review')">Submit Review</button><button onclick="taskDetails('TASK-172')">Activity</button></div></div>
+            <div class="task-card" data-sample draggable="true" data-dept="Marketing" data-priority="Medium" data-scope="marketing" data-owner="other"><div class="task-meta"><span class="badge amber">Medium</span><span class="badge purple">Marketing</span></div><h5>Arabic competitor analysis</h5><p>Assigned to Mona Fathy · by Team Lead · Due Aug 11</p><div class="task-meta"><span class="time">TASK-169</span><span class="time">Work log 3.1h</span></div><div class="task-actions"><button onclick="advanceTask(this,'review')">Submit Review</button><button onclick="taskDetails('TASK-169')">Activity</button></div></div>
           </div></div>
           <div class="task-column" data-status="review"><h4>Review <span class="badge amber" id="reviewCount">1</span></h4><div id="reviewTasks">
-            <div class="task-card" draggable="true" data-dept="Finance" data-priority="High" data-scope="shared"><div class="task-meta"><span class="badge red">High</span><span class="badge blue">Finance</span></div><h5>Approve vendor budget package</h5><p>Assigned to Finance Manager · requested by Commercial Director · Due Aug 8</p><div class="task-meta"><span class="time">TASK-160</span><span class="time">Evidence complete</span></div><div class="task-actions"><button data-task-approve onclick="advanceTask(this,'done')">Approve</button><button onclick="taskDetails('TASK-160')">Activity</button></div></div>
+            <div class="task-card" data-sample draggable="true" data-dept="Finance" data-priority="High" data-scope="shared"><div class="task-meta"><span class="badge red">High</span><span class="badge blue">Finance</span></div><h5>Approve vendor budget package</h5><p>Assigned to Finance Manager · requested by Commercial Director · Due Aug 8</p><div class="task-meta"><span class="time">TASK-160</span><span class="time">Evidence complete</span></div><div class="task-actions"><button data-task-approve onclick="advanceTask(this,'done')">Approve</button><button onclick="taskDetails('TASK-160')">Activity</button></div></div>
           </div></div>
-          <div class="task-column" data-status="done"><h4>Done <span class="badge green" id="doneCount">1</span></h4><div id="doneTasks"><div class="task-card" draggable="true" data-dept="IT" data-priority="Medium" data-scope="it"><div class="task-meta"><span class="badge green">Verified</span><span class="badge blue">IT</span></div><h5>Server migration checklist</h5><p>Completed by Youssef Salem · verified by IT Manager</p><div class="task-meta"><span class="time">TASK-151</span><span class="time">Closed Aug 7</span></div><div class="task-actions"><button onclick="taskDetails('TASK-151')">Audit trail</button></div></div></div></div>
+          <div class="task-column" data-status="done"><h4>Done <span class="badge green" id="doneCount">1</span></h4><div id="doneTasks"><div class="task-card" data-sample draggable="true" data-dept="IT" data-priority="Medium" data-scope="it"><div class="task-meta"><span class="badge green">Verified</span><span class="badge blue">IT</span></div><h5>Server migration checklist</h5><p>Completed by Youssef Salem · verified by IT Manager</p><div class="task-meta"><span class="time">TASK-151</span><span class="time">Closed Aug 7</span></div><div class="task-actions"><button onclick="taskDetails('TASK-151')">Audit trail</button></div></div></div></div>
         </div>
       </section>
 
       <section id="requests" class="view">
         <div class="title-row"><div><div class="eyebrow">No Department Silos</div><h1>Cross-Department Assistance</h1><div class="subtitle">Requests carry ownership, SLA, discussion, evidence, handoffs and approval history.</div></div><button class="btn btn-primary" data-action="new-request">+ New Request</button></div>
         <div class="grid two-col"><div class="card"><div class="section-head"><h3>Active Requests</h3><span class="badge green">27 open</span></div><div id="requestList">
-          <div class="request-card"><div class="meta"><span class="badge purple">Marketing → Design</span><span class="time">SLA 3h</span></div><h4>Campaign social adaptations</h4><p>Sarah requested help. Ahmed accepted. Preview delivered; awaiting final approval.</p><div class="flow"><span class="step done">Requested</span>→<span class="step done">Accepted</span>→<span class="step done">Delivered</span>→<span class="step">Approved</span></div></div>
-          <div class="request-card"><div class="meta"><span class="badge blue">Finance → IT</span><span class="time">SLA 6h</span></div><h4>Accounting export failing</h4><p>System routed to Youssef based on skills and current availability.</p><div class="flow"><span class="step done">Requested</span>→<span class="step done">Routed</span>→<span class="step">In progress</span></div></div>
+          <div class="request-card" data-sample><div class="meta"><span class="badge purple">Marketing → Design</span><span class="time">SLA 3h</span></div><h4>Campaign social adaptations</h4><p>Sarah requested help. Ahmed accepted. Preview delivered; awaiting final approval.</p><div class="flow"><span class="step done">Requested</span>→<span class="step done">Accepted</span>→<span class="step done">Delivered</span>→<span class="step">Approved</span></div></div>
+          <div class="request-card" data-sample><div class="meta"><span class="badge blue">Finance → IT</span><span class="time">SLA 6h</span></div><h4>Accounting export failing</h4><p>System routed to Youssef based on skills and current availability.</p><div class="flow"><span class="step done">Requested</span>→<span class="step done">Routed</span>→<span class="step">In progress</span></div></div>
         </div></div><div class="card"><div class="section-head"><h3>Department Service Catalog</h3><span class="badge blue">Self-service</span></div><div class="leader"><div><b>IT</b><div class="subtitle">Access, devices, software, incidents</div></div><span>18 services</span></div><div class="leader"><div><b>HR</b><div class="subtitle">Leave, contracts, onboarding, policies</div></div><span>12 services</span></div><div class="leader"><div><b>Finance</b><div class="subtitle">Payments, budgets, reimbursements</div></div><span>9 services</span></div><div class="leader"><div><b>Design</b><div class="subtitle">Creative, presentations, brand assets</div></div><span>7 services</span></div></div></div>
       </section>
 
@@ -634,10 +635,10 @@ button.avatar{border:0;cursor:pointer;font:inherit}
         <div class="policy" style="margin-bottom:14px"><b>Transparency model:</b> public company channels are visible to all employees. Project/request discussions follow project permissions. Direct messages are limited to participants; audit metadata can be retained for compliance without silently exposing private content.</div>
         <div class="card thread"><div class="thread-list">
           <div class="thread-item active" onclick="selectThread(this,'#company-all','Open to all 213 employees')"><b># company-all</b><p>Company-wide announcements & conversation</p></div>
-          <div class="thread-item" onclick="selectThread(this,'#help-anyone','Ask anyone across the company')"><b># help-anyone</b><p>Cross-company questions and assistance</p></div>
-          <div class="thread-item" onclick="selectThread(this,'#marketing','Marketing department channel')"><b># marketing</b><p>Department-scoped conversation</p></div>
-          <div class="thread-item" onclick="selectThread(this,'Project: ERP Migration','Project members only')"><b>ERP Migration</b><p>Project-linked work discussion</p></div>
-          <div class="thread-item" onclick="selectThread(this,'DM · Youssef Salem','Participants only')"><b>Youssef Salem</b><p>Direct message · IT</p></div>
+          <div class="thread-item" data-sample onclick="selectThread(this,'#help-anyone','Ask anyone across the company')"><b># help-anyone</b><p>Cross-company questions and assistance</p></div>
+          <div class="thread-item" data-sample onclick="selectThread(this,'#marketing','Marketing department channel')"><b># marketing</b><p>Department-scoped conversation</p></div>
+          <div class="thread-item" data-sample onclick="selectThread(this,'Project: ERP Migration','Project members only')"><b>ERP Migration</b><p>Project-linked work discussion</p></div>
+          <div class="thread-item" data-sample onclick="selectThread(this,'DM · Youssef Salem','Participants only')"><b>Youssef Salem</b><p>Direct message · IT</p></div>
         </div><div class="thread-main"><div class="thread-header"><div><b id="threadTitle">#company-all</b><div class="subtitle" id="threadScope">Open to all 213 employees</div></div><span class="badge green">Live</span></div><div class="messages" id="messages">
           <div class="msg"><small>Operations · 09:12</small><div class="bubble">The updated procurement procedure is published in the Knowledge Base. Please use the new approval route from Monday.</div></div>
           <div class="msg"><small>Sarah · Marketing · 09:20</small><div class="bubble">Does anyone have experience with Arabic motion-graphics vendors? I need recommendations for a client project.</div></div>
@@ -666,7 +667,7 @@ button.avatar{border:0;cursor:pointer;font:inherit}
         </div>
         <div id="tool-issues" class="tool-pane"><div class="card"><div class="section-head"><div><h3>Issue Management</h3><small>Add, import, prioritize and resolve technical/project issues.</small></div><div class="tool-filter"><select id="issueFilter" onchange="filterToolIssues()"><option value="all">All statuses</option><option>Open</option><option>In Progress</option><option>Blocked</option><option>Resolved</option></select><button class="btn btn-ghost" onclick="document.getElementById('issueImportFile').click()">Import CSV/XLSX</button><button class="btn btn-primary" onclick="openIssueModal()">＋ Add issue</button></div></div><div id="issuesList"><div class="issue-row list-head"><span>Severity</span><span>Issue</span><span>Workspace</span><span>Owner</span><span>Status</span><span>Due</span></div><div class="issue-row tool-issue" data-status="Open"><span><i class="badge red">Critical</i></span><b>Checkout API timeout</b><span>Sales Portal</span><span>Youssef</span><span class="badge amber">Open</span><span>Aug 9</span></div><div class="issue-row tool-issue" data-status="In Progress"><span><i class="badge amber">High</i></span><b>Campaign page tracking gap</b><span>Marketing Website</span><span>Sarah</span><span class="badge blue">In Progress</span><span>Aug 10</span></div><div class="issue-row tool-issue" data-status="Blocked"><span><i class="badge amber">High</i></span><b>Vendor data migration mapping</b><span>ERP Migration</span><span>Finance</span><span class="badge red">Blocked</span><span>Aug 12</span></div></div></div></div>
         <div id="tool-resources" class="tool-pane"><div class="card"><div class="section-head"><div><h3>Resource Library</h3><small>Files, folders, credentials references, reports and links attached to workspaces.</small></div><button class="btn btn-primary" onclick="openResourceModal()">＋ Add resource</button></div><div id="resourcesList"><div class="resource-row list-head"><span>Type</span><span>Name</span><span>Workspace</span><span>Location</span><span>Category</span></div><div class="resource-row"><span class="badge blue">Link</span><b>Analytics dashboard</b><span>Marketing Website</span><span>analytics.google.com</span><span>Dashboard</span></div><div class="resource-row"><span class="badge purple">Folder</span><b>ERP evidence package</b><span>ERP Migration</span><span>/Shared/ERP/Evidence</span><span>Audit</span></div><div class="resource-row"><span class="badge gray">File</span><b>Q3 keyword research.xlsx</b><span>Marketing Website</span><span>/Research/Q3</span><span>Research</span></div></div></div></div>
-        <div id="tool-worklog" class="tool-pane"><div class="card"><div class="section-head"><div><h3>Documented Work Log</h3><small>Separate from assigned tasks: this records what was actually done, time spent, URL, notes and evidence.</small></div><button class="btn btn-primary" onclick="openWorkLogModal(false)">＋ Log work</button></div><div id="workLogList"><div class="worklog-row list-head"><span>Date</span><span>Work</span><span>Workspace</span><span>Category</span><span>Time</span><span>Status</span></div><div class="worklog-row"><span>Aug 7</span><b>Resolved server migration validation</b><span>ERP Migration</span><span>Testing / QA</span><span>1h 42m</span><span class="badge green">Completed</span></div><div class="worklog-row"><span>Aug 7</span><b>Campaign event tracking repair</b><span>Marketing Website</span><span>Analytics</span><span>48m</span><span class="badge green">Completed</span></div><div class="worklog-row"><span>Aug 6</span><b>Investigated checkout timeout</b><span>Sales Portal</span><span>Bug Fix</span><span>2h 10m</span><span class="badge blue">In Progress</span></div></div></div></div>
+        <div id="tool-worklog" class="tool-pane"><div class="card"><div class="section-head"><div><h3>Documented Work Log</h3><small>Separate from assigned tasks: this records what was actually done, time spent, URL, notes and evidence.</small></div><button class="btn btn-primary" onclick="openWorkLogModal(false)">＋ Log work</button></div><div id="workLogList"><div class="worklog-row list-head"><span>Date</span><span>Work</span><span>Workspace</span><span>Category</span><span>Time</span><span>Status</span></div><div class="worklog-row" data-sample><span>Aug 7</span><b>Resolved server migration validation</b><span>ERP Migration</span><span>Testing / QA</span><span>1h 42m</span><span class="badge green">Completed</span></div><div class="worklog-row" data-sample><span>Aug 7</span><b>Campaign event tracking repair</b><span>Marketing Website</span><span>Analytics</span><span>48m</span><span class="badge green">Completed</span></div><div class="worklog-row" data-sample><span>Aug 6</span><b>Investigated checkout timeout</b><span>Sales Portal</span><span>Bug Fix</span><span>2h 10m</span><span class="badge blue">In Progress</span></div></div></div></div>
       </section>
 
       <section id="reports" class="view">
@@ -772,7 +773,7 @@ button.avatar{border:0;cursor:pointer;font:inherit}
         <div class="card"><div class="section-head"><h3>How this 3D workspace connects to the rest of the OS</h3><small>Visual concept adapted from Atelier · data sourced from companyData</small></div>
           <div class="grid three-col">
             <div><b style="font-size:13px">Live company data</b><p class="ws3d-empties" style="margin-top:6px">Workstation colors, productivity meters and leave flags come directly from <code>companyData.employees</code>, <code>companyData.leaveRequests</code> and <code>companyData.coverage</code> already powering the dashboard, attendance and performance views.</p></div>
-            <div><b style="font-size:13px">Spatial leave impact</b><p class="ws3d-empties" style="margin-top:6px">Switch on “Risk rings” to see exactly which desks are exposed today. The Aug&nbsp;12 collision between Sarah Adel and her backup Karim Hany shows up as overlapping red halos.</p></div>
+            <div><b style="font-size:13px">Spatial leave impact</b><p class="ws3d-empties" style="margin-top:6px" data-sample-copy="Switch on “Risk rings” to see exactly which desks are exposed today. Where someone and their designated backup are both away, the two desks show up as overlapping red halos.">Switch on “Risk rings” to see exactly which desks are exposed today. The Aug&nbsp;12 collision between Sarah Adel and her backup Karim Hany shows up as overlapping red halos.</p></div>
             <div><b style="font-size:13px">Coverage graph</b><p class="ws3d-empties" style="margin-top:6px">Toggle “Coverage links” to draw glowing connection lines between every employee and their designated backup — the same matrix the attendance and coverage views rely on.</p></div>
           </div>
         </div>
@@ -976,14 +977,25 @@ document.querySelectorAll('[data-action="new-deduction"]').forEach(b=>b.onclick=
 roleSelect.onchange=applyRole;
 function applyRole(){const r=roleSelect.value,cfg=roleConfig[r];const inspector=document.getElementById('privilegeInspectRole');if(inspector&&!cfg.canManagePrivileges)inspector.value=r;document.getElementById('roleNote').innerHTML=`<b>${cfg.label}</b><span>${cfg.scopeCode} access scope</span>`;document.querySelectorAll('.nav button[data-perm]').forEach(b=>{const ok=cfg.perms.includes(b.dataset.perm);b.classList.toggle('locked',!ok);b.setAttribute('aria-disabled',String(!ok))});const active=document.querySelector('.view.active');if(active&&!cfg.perms.includes(active.id))navigate('dashboard');document.querySelectorAll('.executive-dashboard-only').forEach(el=>el.classList.toggle('hidden',r!=='ceo'));
  const title=document.getElementById('dashboardTitle'),sub=document.getElementById('dashboardSubtitle');
- if(r==='ceo'){title.textContent='Good morning, Omar 👋';sub.textContent="Here’s what’s happening with SEO For All today.";setKpis('184 / 213','31,482h','27','6');document.getElementById('performanceScope').textContent='Company scope'}
+ if(r==='ceo'){title.textContent=greetingFor();sub.textContent="Here’s what’s happening with SEO For All today.";setKpis('184 / 213','31,482h','27','6');document.getElementById('performanceScope').textContent='Company scope'}
  if(r==='director'){title.textContent='Commercial Division';sub.textContent='SEO For All division view with assigned campaigns, people and cross-functional work.';setKpis('73 / 84','12,440h','11','3');document.getElementById('performanceScope').textContent='Division scope'}
  if(r==='manager'){title.textContent='SEO & Growth Department';sub.textContent='Department-scoped campaign delivery, people data and shared requests.';setKpis('18 / 21','3,108h','7','2');document.getElementById('performanceScope').textContent='Marketing department'}
  if(r==='lead'){title.textContent='SEO Delivery Team';sub.textContent='Your team’s campaigns, assigned work, requests and attendance summary.';setKpis('6 / 7','1,021h','3','—');document.getElementById('performanceScope').textContent='Team scope'}
  if(r==='employee'){title.textContent='My SEO For All Workday';sub.textContent='Your tasks, attendance, campaigns, discussions and development data.';setKpis('Checked in 09:02','112.5h','3','—');document.getElementById('performanceScope').textContent='My development view'}
  document.getElementById('deductionButton').classList.toggle('hidden',!cfg.canDeduct);filterAttendance(r);applyTaskPrivileges(r);renderPrivilegeCenter();updateOwnerSettingsAccess();scheduleFunPulse();showToast(`${cfg.label}: ${cfg.scope} permissions applied`)}
-function setKpis(a,b,c,d){document.getElementById('kpiPeople').textContent=a;document.getElementById('kpiHours').textContent=b;document.getElementById('kpiRequests').textContent=c;document.getElementById('kpiDeductions').textContent=d}
-function filterAttendance(role){const rows=[...document.querySelectorAll('#attendanceTable tbody tr')];rows.forEach((row,i)=>{let show=true;if(role==='manager'||role==='lead')show=row.dataset.scope==='marketing';if(role==='employee')show=i===0;row.classList.toggle('hidden',!show)});if(role==='employee'){document.getElementById('expectedHours').textContent='112h';document.getElementById('workedHours').textContent='112.5h';document.getElementById('approvedDeductions').textContent='EGP 0'}else if(role==='manager'||role==='lead'){document.getElementById('expectedHours').textContent='2,352h';document.getElementById('workedHours').textContent='2,214h';document.getElementById('approvedDeductions').textContent='EGP 1,180'}else{document.getElementById('expectedHours').textContent='35,520h';document.getElementById('workedHours').textContent='31,482h';document.getElementById('approvedDeductions').textContent='EGP 12,840'}}
+// The dashboard greeting used a sample person's name. Use whoever is signed in,
+// and fall back to something neutral before the account has loaded.
+var SIGNED_IN_NAME='';
+function greetingFor(){
+ const first=String(SIGNED_IN_NAME||'').trim().split(/\s+/)[0];
+ return first?('Good morning, '+first+' \u{1F44B}'):'Good morning \u{1F44B}';
+}
+function setKpis(a,b,c,d){if(!SAMPLE_MODE){a=b=c=d='\u2014';}document.getElementById('kpiPeople').textContent=a;document.getElementById('kpiHours').textContent=b;document.getElementById('kpiRequests').textContent=c;document.getElementById('kpiDeductions').textContent=d}
+// These totals were written per role from fixed numbers. Outside sample mode
+// nothing has been measured, so show that rather than a total this company
+// never produced.
+function setAttKpi(id,value){const el=document.getElementById(id);if(el)el.textContent=SAMPLE_MODE?value:'\u2014';}
+function filterAttendance(role){const rows=[...document.querySelectorAll('#attendanceTable tbody tr')];rows.forEach((row,i)=>{let show=true;if(role==='manager'||role==='lead')show=row.dataset.scope==='marketing';if(role==='employee')show=i===0;row.classList.toggle('hidden',!show)});if(role==='employee'){setAttKpi('expectedHours','112h');setAttKpi('workedHours','112.5h');setAttKpi('approvedDeductions','EGP 0')}else if(role==='manager'||role==='lead'){setAttKpi('expectedHours','2,352h');setAttKpi('workedHours','2,214h');setAttKpi('approvedDeductions','EGP 1,180')}else{setAttKpi('expectedHours','35,520h');setAttKpi('workedHours','31,482h');setAttKpi('approvedDeductions','EGP 12,840')}}
 const taskAssignees={
  company:['Commercial Director','Operations Director','People & Finance Director','Marketing Manager','IT Manager','Finance Manager','Sarah Adel · Marketing','Mona Fathy · Marketing','Ahmed Nabil · Design','Youssef Salem · IT'],
  division:['Marketing Manager','Sales Manager','Sarah Adel · Marketing','Mona Fathy · Marketing','Ahmed Nabil · Design'],
@@ -1078,7 +1090,7 @@ document.getElementById('globalSearch').addEventListener('keydown',e=>{if(e.key=
 document.querySelectorAll('#workspaceTabs .tab').forEach(tab=>tab.onclick=()=>{document.querySelectorAll('#workspaceTabs .tab').forEach(t=>t.classList.remove('active'));document.querySelectorAll('#workspaces .tabpane').forEach(p=>p.classList.remove('active'));tab.classList.add('active');document.getElementById(tab.dataset.tab).classList.add('active')});
 let timerSeconds=0,timerTicker=null;function renderTimer(){const h=String(Math.floor(timerSeconds/3600)).padStart(2,'0'),m=String(Math.floor((timerSeconds%3600)/60)).padStart(2,'0'),s=String(timerSeconds%60).padStart(2,'0');document.getElementById('timerDisplay').textContent=`${h}:${m}:${s}`};function toggleTimer(){const b=document.getElementById('timerButton');if(timerTicker){clearInterval(timerTicker);timerTicker=null;b.textContent='Start timer';showToast('Work timer paused')}else{timerTicker=setInterval(()=>{timerSeconds++;renderTimer()},1000);b.textContent='Pause timer';showToast('Work timer started')}}function resetTimer(){clearInterval(timerTicker);timerTicker=null;timerSeconds=0;renderTimer();document.getElementById('timerButton').textContent='Start timer'}
 
-const companyData=Object.assign({
+const SAMPLE_WORKSPACE=Object.assign({
  employees:[
   {name:'Youssef Salem',department:'IT',role:'Senior Engineer',tasks:31,quality:96,assists:29,hours:118.2,attendance:97.2,late:18,overdue:0,deductions:0,managerRating:3.1,projects:4},
   {name:'Sarah Adel',department:'Marketing',role:'Growth Specialist',tasks:28,quality:94,assists:21,hours:112.5,attendance:98.4,late:9,overdue:1,deductions:0,managerRating:4.6,projects:5},
@@ -1100,8 +1112,17 @@ const companyData=Object.assign({
   {employee:'Ahmed Nabil',amount:150,reason:'Late arrival',status:'HR reviewed'},
   {employee:'Nour Hassan',amount:100,reason:'Unexcused absence',status:'Approved'}
  ]
-},(window.__companyDataSync&&window.__companyDataSync.appData)||{});
-companyData.coverage={
+},{});
+// What the server actually knows about this company. Null until setup runs.
+const serverData=(window.__companyDataSync&&window.__companyDataSync.appData)||null;
+// Sample records appear only when the server says this workspace opted into them,
+// or when no company is configured yet and there is nothing real to show. The
+// client never decides this for itself, and the two sets are never merged.
+const SAMPLE_MODE=!serverData||serverData.sampleData===true;
+const companyData=SAMPLE_MODE
+ ? Object.assign({},SAMPLE_WORKSPACE,serverData||{})
+ : {employees:(serverData.employees||[]).slice(),projects:[],deductions:[]};
+companyData.coverage=SAMPLE_MODE?{
  'Sarah Adel':{backup:'Karim Hany',criticalSkill:'Campaign launch ownership',approvalRole:false},
  'Karim Hany':{backup:'Sarah Adel',criticalSkill:'Paid media optimization',approvalRole:false},
  'Youssef Salem':{backup:'Omar Samir',criticalSkill:'ERP production validation',approvalRole:true},
@@ -1110,14 +1131,14 @@ companyData.coverage={
  'Mona Fathy':{backup:'Sarah Adel',criticalSkill:'Arabic content publishing',approvalRole:false},
  'Nour Hassan':{backup:'Omar Samir',criticalSkill:'Enterprise client ownership',approvalRole:false},
  'Omar Samir':{backup:'Youssef Salem',criticalSkill:'Operations coordination',approvalRole:true}
-};
-companyData.leaveRequests=[
+}:{};
+companyData.leaveRequests=SAMPLE_MODE?[
  {employee:'Sarah Adel',date:'2026-08-12',days:1,status:'Pending',type:'Annual leave'},
  {employee:'Karim Hany',date:'2026-08-12',days:1,status:'Pending',type:'Personal leave'},
  {employee:'Mona Fathy',date:'2026-08-17',days:2,status:'Approved',type:'Annual leave'},
  {employee:'Reem Wael',date:'2026-08-20',days:1,status:'Pending',type:'Annual leave'}
-];
-companyData.taskDetails=[
+]:[];
+companyData.taskDetails=SAMPLE_MODE?[
  {id:'TASK-181',title:'Launch Q3 paid campaign',assignee:'Sarah Adel',priority:'Critical',due:'2026-08-12',dependency:true,clientImpact:true,approval:false,alternate:'Karim Hany',progress:72},
  {id:'TASK-182',title:'Approve campaign audience matrix',assignee:'Sarah Adel',priority:'High',due:'2026-08-13',dependency:true,clientImpact:false,approval:true,alternate:'Karim Hany',progress:60},
  {id:'TASK-176',title:'Arabic landing-page final review',assignee:'Sarah Adel',priority:'Medium',due:'2026-08-14',dependency:false,clientImpact:true,approval:false,alternate:'Mona Fathy',progress:85},
@@ -1126,7 +1147,7 @@ companyData.taskDetails=[
  {id:'TASK-169',title:'Arabic competitor analysis',assignee:'Mona Fathy',priority:'Medium',due:'2026-08-11',dependency:false,clientImpact:false,approval:false,alternate:'Sarah Adel',progress:54},
  {id:'TASK-160',title:'Approve vendor budget package',assignee:'Reem Wael',priority:'High',due:'2026-08-12',dependency:true,clientImpact:false,approval:true,alternate:'Omar Samir',progress:90},
  {id:'TASK-188',title:'Enterprise renewal proposal',assignee:'Nour Hassan',priority:'High',due:'2026-08-13',dependency:true,clientImpact:true,approval:false,alternate:'Omar Samir',progress:48}
-];
+]:[];
 
 function productivityScore(e){const taskScore=Math.min(100,e.tasks/32*100),quality=e.quality,collab=Math.min(100,e.assists/34*100),reliability=Math.max(0,e.attendance-(e.overdue*4));return +(taskScore*.35+quality*.25+collab*.20+reliability*.20).toFixed(1)}
 companyData.employees.forEach(e=>e.productivity=productivityScore(e));
@@ -1498,6 +1519,107 @@ companyData.employees.forEach((e, i) => {
   if (e.isActive === undefined) e.isActive = (i % 5 !== 0); // ~80% active initially
 });
 
+// The period list was fixed at August 2026. Build it from today instead, so the
+// selected month is the one the reader is actually in.
+function fillAttendancePeriods(){
+ const sel=document.getElementById('attendancePeriod');
+ if(!sel)return;
+ const now=new Date();
+ sel.innerHTML='';
+ for(let back=0;back<12;back++){
+  const d=new Date(now.getFullYear(),now.getMonth()-back,1);
+  const label=d.toLocaleDateString(undefined,{month:'long',year:'numeric'});
+  const o=document.createElement('option');
+  o.value=d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0');
+  o.textContent=label;
+  sel.appendChild(o);
+ }
+}
+
+// Sample rows also live directly in the markup. When this workspace has not opted
+// into sample records they are removed outright rather than restyled: a figure that
+// is not real should not be on screen at all, however it is labelled.
+function applySampleMode(){
+ const banner=document.getElementById('demoBanner');
+ if(SAMPLE_MODE){
+  if(banner&&!serverData){
+   const p=banner.querySelector('p');
+   if(p)p.textContent='No company is configured yet, so everything below is sample data. Run setup to replace it with your own.';
+  }
+  return;
+ }
+ if(banner)banner.remove();
+ const containers=new Set();
+ document.querySelectorAll('[data-sample]').forEach(el=>{
+  if(el.parentElement)containers.add(el.parentElement);
+  el.remove();
+ });
+
+ // Some sample rows carry no marker, so sweep for anything still naming one of
+ // the sample people. The list comes from the sample data itself, so it cannot
+ // drift out of step with it.
+ const sampleNames=(SAMPLE_WORKSPACE.employees||[]).map(e=>e.name).filter(Boolean);
+ const namesSampleRow=el=>sampleNames.some(n=>(el.textContent||'').includes(n));
+ if(sampleNames.length){
+  document.querySelectorAll('.leave-list>div,.leader .person,tbody>tr,li').forEach(row=>{
+   if(!namesSampleRow(row))return;
+   if(row.parentElement)containers.add(row.parentElement);
+   row.remove();
+  });
+
+  // Explanatory copy that illustrates a feature using sample people. The neutral
+  // wording is carried on the element so the two versions stay together.
+  document.querySelectorAll('[data-sample-copy]').forEach(el=>{
+   el.textContent=el.getAttribute('data-sample-copy');
+  });
+
+  // Aggregate figures that were invented. Nothing real has been measured yet, so
+  // say so rather than showing a total this company never produced.
+  document.querySelectorAll('[data-sample-value]').forEach(el=>{
+   el.textContent=el.getAttribute('data-sample-value');
+  });
+
+  // An employee picker should offer the real roster, never invented people.
+  const real=companyData.employees||[];
+  document.querySelectorAll('select').forEach(sel=>{
+   if(![...sel.options].some(namesSampleRow))return;
+   sel.innerHTML='';
+   if(!real.length){
+    const o=document.createElement('option');
+    o.textContent='No employees configured yet';
+    o.disabled=true;
+    sel.appendChild(o);
+    return;
+   }
+   real.forEach(e=>{
+    const o=document.createElement('option');
+    o.value=e.name;
+    o.textContent=e.department?e.name+' · '+e.department:e.name;
+    sel.appendChild(o);
+   });
+  });
+ }
+
+ containers.forEach(c=>{
+  if(c.children.length)return;
+  const empty=document.createElement(c.tagName==='TBODY'?'tr':'p');
+  if(c.tagName==='TBODY'){
+   const cell=document.createElement('td');
+   cell.colSpan=12;
+   cell.className='sample-empty';
+   cell.textContent='No attendance records yet. Rows appear here once a device sends punches.';
+   empty.appendChild(cell);
+  }else{
+   empty.className='sample-empty';
+   empty.textContent='Nothing here yet. This fills in from your configured company and connected devices.';
+  }
+  c.appendChild(empty);
+ });
+ // Counts that were written to match the removed rows.
+ try{if(typeof updateTaskColumnCounts==='function')updateTaskColumnCounts()}catch(_){}
+ document.querySelectorAll('#deductionQueueCount').forEach(el=>el.textContent='0 pending');
+}
+
 function dismissDemoBanner(){
  const el=document.getElementById('demoBanner');
  if(el)el.hidden=true;
@@ -1541,6 +1663,7 @@ function signOut(){
    const nameEl=document.getElementById('accountName');if(nameEl)nameEl.textContent=u.displayName||'Signed in';
    const mailEl=document.getElementById('accountEmail');if(mailEl)mailEl.textContent=u.email||'';
    const roleEl=document.getElementById('accountRole');if(roleEl)roleEl.textContent=u.baseRole||'';
+   SIGNED_IN_NAME=u.displayName||'';
    // The role comes from the signed-in account, not from a control the person
    // can change. The server enforces it either way; this stops the UI implying
    // that picking a different option grants anything.
@@ -1557,6 +1680,8 @@ function signOut(){
 })();
 
 loadFunScheduleUI();
+fillAttendancePeriods();
+applySampleMode();
 applyRole();
 wireSmoothButtonsV10();
 </script>

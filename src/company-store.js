@@ -51,7 +51,9 @@ class CompanyStore {
       backupPath: text(input.preferences && input.preferences.backupPath, '', 500),
       reminders: input.preferences && input.preferences.reminders !== false,
       funEnabled: input.preferences && input.preferences.funEnabled !== false,
-      keepDemoRecords: input.preferences && input.preferences.keepDemoRecords !== false,
+      // Sample records are opt-in. A configured company starts with its own data
+      // and nothing else, so nobody mistakes demo figures for their own.
+      keepDemoRecords: Boolean(input.preferences && input.preferences.keepDemoRecords === true),
     };
     const clean = {
       companyName: text(input.companyName, 'SEO For All', 160),
@@ -113,6 +115,9 @@ class CompanyStore {
     const cfg = this.get();
     if (!cfg) return null;
     return {
+      // Tells the client whether it may show sample records at all. The client
+      // must not decide this for itself.
+      sampleData: Boolean(cfg.preferences && cfg.preferences.keepDemoRecords),
       employees: (cfg.employees || []).map((employee) => ({
         name: employee.name,
         department: employee.department || 'General',
